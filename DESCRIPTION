@@ -20,9 +20,7 @@ Imports:
     spatstat.random,
     dplyr,
     tidyr,
-    tidyverse,
     tibble,
-    ggplot2,
     rlang,
     sp,
     sf
@@ -32,6 +30,7 @@ Suggests:
     knitr,
     ggplot2,
     blockCV,
+    tidyverse,
     devtools,
     ecospat
 URL: https://github.com/PetrBalej/tgbg
