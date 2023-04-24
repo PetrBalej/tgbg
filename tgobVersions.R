@@ -11,11 +11,10 @@
 #' @param badWordsObservers character vector: observers containing unwanted strings
 #' @param crs integer: Force crs.
 #'
-#' @references Inspired by: https://github.com/danlwarren/ENMTools/blob/004a4a1e182127900a5f62bc015770479bcd0415/R/check.bg.R#L138-L144
-#' @return List: \emph{br}: RasterLayer (bias raster), \emph{bg}: sf (POINT/MULTIPOINT) (background points) with nested List of choosen \emph{sigma} levels
+#' @return sf (POINT/MULTIPOINT): inserted \emph{p} with new (0/1) columns: TO, TS, ssosTGOB_\emph{species}, ssosTO_\emph{species}, ssosTS_\emph{species}
 
 tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.1, observers = NA, TO.n = 0.1, observersRemoveSingle = TRUE, badWordsSpecies = NA, badWordsObservers = NA, crs = NA) {
-    out <- list("TGOB" = NA, "TO" = NA, "TS" = NA, "ssosTO" = NA, "ssosTS" = NA, "ssosTGOB" = NA, "observers" = list("all" = NA, "single" = NA, "result" = NA, "removed" = NA))
+    out <- list("p" = NA, "ssos" = NA)
     badWords <- "_badWords"
 
     if (!is.na(r) & !is(r, "RasterLayer")) {
@@ -154,7 +153,7 @@ tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.1, observers =
 
         p.TO.unique <- unique(as.vector(unlist(p.TO.unique)))
         # mark top X observers
-        p %<>% mutate(sym(paste0(observers, "_TO")) := ifelse(sym(observers) %in% p.TO.unique, 1, 0))
+        p %<>% mutate(TO = ifelse(sym(observers) %in% p.TO.unique, 1, 0))
     }
 
     # # # # # # # # # #
@@ -187,9 +186,64 @@ tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.1, observers =
 
     p.TS.unique <- unique(as.vector(unlist(p.TS.unique)))
     # mark top X species
-    p %<>% mutate(sym(paste0(species, "_TS")) := ifelse(sym(species) %in% p.TS.unique, 1, 0))
+    p %<>% mutate(TS = ifelse(sym(species) %in% p.TS.unique, 1, 0))
 
     # # # # # # # # # #
-    # ssos
+    # ssos - add species/version columns (0/1)
     # # # # # # # # # #
+
+    ssc <- c("TGOB", "TS", "TO")
+    species.unique <- unique(as.vector(unlist(p %>% dplyr::select(sym(species)))))
+
+    # versions
+    for (sscn in ssc) {
+        ssos.temp.v <- as_tibble(p) %>% dplyr::select(-geometry)
+        if (sscn != "TGOB") {
+            ssos.temp.v %<>% filter(sym(sscn) == 1)
+        }
+
+        # species
+        for (sp in species.unique) {
+            ssos.temp.v.sp <- ssos.temp.v %>% filter(sym(species) == sp)
+
+            if (nrow(ssos.temp.v.sp) < 1) {
+                # zero species occurrences in ssos
+                next
+            }
+
+            # select observers with at least one occ of selected species
+            observers.unique <- unique(as.vector(unlist(ssos.temp.v.sp %>% dplyr::select(sym(observers)))))
+            ssos.temp <- ssos.temp.v %>% filter(sym(observers) %in% observers.unique)
+
+            # count occs per species and observers
+            ssos.temp.stat <- ssos.temp %>%
+                ungroup() %>%
+                group_by(sym(species), sym(observers)) %>%
+                summarise(uid.n = n_distinct(uid))
+
+            # sum occs per observers
+            ssos.temp.stat.observers <- ssos.temp.stat %>%
+                ungroup() %>%
+                group_by(sym(observers)) %>%
+                summarise(observers.n = sum(uid.n))
+
+            # sum occs of selected species per observers
+            ssos.temp.stat.species <- ssos.temp.stat %>%
+                ungroup() %>%
+                filter(sym(species) == sp) %>%
+                group_by(sym(observers)) %>%
+                summarise(species.n = sum(uid.n))
+
+            # ratio (selected species occs per total occs) per observers
+            ssos.temp.ratio <- sssos.temp.stat.observers %>%
+                left_join(ssos.temp.stat.species, by = sym(observers)) %>%
+                mutate(ratio = species.n / observers.n)
+
+            # remove "outlier" observers with suspicious ratio (lower than centile)
+            ssos.temp.ratio.quantile <- unname(quantile(ssos.temp.ratio$ratio, probs = c(0.01)))
+            observers.unique <- unique(as.vector(unlist(ssos.temp.ratio %>% filter(ratio >= ssos.temp.ratio.quantile[1]) %>% dplyr::select(sym(observers)))))
+
+            p %<>% mutate(sym(paste0("ssos", sscn, "_", sp)) := ifelse(sym(observers) %in% observers.unique, 1, 0))
+        }
+    }
 }
