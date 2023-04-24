@@ -18,8 +18,8 @@ bg <- function(p, r, n = 0.1, sigma = c(0.1, 0.5, 1, 2, 3, 4), output = c("br", 
         return(out)
     }
 
-    if (is(rp, "sf") && sf::st_geometry_type(rp, by_geometry = FALSE) == "POINT") {
-        stop("p: sf/sfc (POINT/MULTIPOINT) allowed!")
+    if (is(p, "sf") && sf::st_geometry_type(rp, by_geometry = FALSE) == "POINT") {
+        stop("p: only sf/sfc (POINT/MULTIPOINT) allowed!")
         return(out)
     }
 

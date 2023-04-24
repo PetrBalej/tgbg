@@ -30,7 +30,7 @@ sample <- function(rp, n = 0.1, prob = FALSE, crs = NA) {
         return(list())
     }
 
-    if (n > 1) {
+    if (n >= 1) {
         # exact number of points to sample
         total <- nrow(background.points)
         if (n > total) {
