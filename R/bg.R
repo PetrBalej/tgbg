@@ -8,6 +8,8 @@
 #' @param crs integer: Force crs.
 #'
 #' @return List: \emph{br}: RasterLayer (bias raster); \emph{bg}: sf (POINT/MULTIPOINT) (background points) with nested List of choosen \emph{sigma} levels
+#' 
+#' @export
 
 bg <- function(p, r, n = 0.1, sigma = c(0.1, 0.5, 1, 2, 3, 4), output = c("br", "bg"), crs = NA, anisotropic = FALSE) {
     out <- list("br" = NA, "bg" = NA)

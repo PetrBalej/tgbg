@@ -12,6 +12,8 @@
 #' @param crs integer: Force crs.
 #'
 #' @return sf (POINT/MULTIPOINT): inserted \emph{p} with new (0/1) columns: TO, TS, ssosTGOB_\emph{species}, ssosTO_\emph{species}, ssosTS_\emph{species}
+#' 
+#' @export
 
 tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.1, observers = NA, TO.n = 0.1, observersRemoveSingle = TRUE, badWordsSpecies = NA, badWordsObservers = NA, crs = NA) {
     badWords <- "_badWords"

@@ -7,6 +7,8 @@
 #'
 #' @references Inspired by: https://github.com/danlwarren/ENMTools/blob/004a4a1e182127900a5f62bc015770479bcd0415/R/check.bg.R#L138-L144
 #' @return sf (POINT/MULTIPOINT)
+#' 
+#' @export
 
 sample <- function(rp, n = 0.1, prob = FALSE, crs = NA) {
     # počítám s tím, že dostanu už unikátní body per pixel! Pak můžu vždy poměrově vybrat část k "ploše"?
