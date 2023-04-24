@@ -35,3 +35,4 @@ Suggests:
     devtools,
     ecospat
 URL: https://github.com/PetrBalej/tgbg
+RoxygenNote: 7.1.1
