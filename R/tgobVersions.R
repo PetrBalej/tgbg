@@ -14,17 +14,16 @@
 #' @return sf (POINT/MULTIPOINT): inserted \emph{p} with new (0/1) columns: TO, TS, ssosTGOB_\emph{species}, ssosTO_\emph{species}, ssosTS_\emph{species}
 
 tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.1, observers = NA, TO.n = 0.1, observersRemoveSingle = TRUE, badWordsSpecies = NA, badWordsObservers = NA, crs = NA) {
-    out <- list("p" = NA, "ssos" = NA)
     badWords <- "_badWords"
 
     if (!is.na(r) & !is(r, "RasterLayer")) {
         stop("r: only RasterLayer allowed!")
-        return(out)
+        return(NA)
     }
 
     if (is(p, "sf") && sf::st_geometry_type(rp, by_geometry = FALSE) == "POINT") {
         stop("p: only sf/sfc (POINT/MULTIPOINT) allowed!")
-        return(out)
+        return(NA)
     }
 
     if (is.integer(crs)) {
@@ -33,7 +32,7 @@ tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.1, observers =
     } else {
         if (sf::st_crs(p)$proj4string == sf::st_crs(r)$proj4string) {
             stop("p and r crs are not equal!")
-            return(out)
+            return(NA)
         }
         crs <- raster::crs(r)
     }
@@ -246,4 +245,6 @@ tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.1, observers =
             p %<>% mutate(sym(paste0("ssos", sscn, "_", sp)) := ifelse(sym(observers) %in% observers.unique, 1, 0))
         }
     }
+
+    return(p)
 }
