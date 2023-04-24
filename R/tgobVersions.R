@@ -12,17 +12,12 @@
 #' @param crs integer: Force crs.
 #'
 #' @return sf (POINT/MULTIPOINT): inserted \emph{p} with new (0/1) columns: TO, TS, ssosTGOB_\emph{species}, ssosTO_\emph{species}, ssosTS_\emph{species}
-#' 
+#'
 #' @export
 
 tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.1, observers = NA, TO.n = 0.1, observersRemoveSingle = TRUE, badWordsSpecies = NA, badWordsObservers = NA, crs = NA) {
     badWords <- "_badWords"
     prefix <- "nc_" # new columns with versions to detect
-
-    if (!is.na(r) & !is(r, "RasterLayer")) {
-        stop("r: only RasterLayer allowed!")
-        return(NA)
-    }
 
     if (is(p, "sf") && sf::st_geometry_type(rp, by_geometry = FALSE) == "POINT") {
         stop("p: only sf/sfc (POINT/MULTIPOINT) allowed!")
@@ -31,9 +26,9 @@ tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.1, observers =
 
     if (is.integer(crs)) {
         sf::st_crs(p) <- paste0("epsg:", crs)
-        sf::st_crs(r) <- paste0("epsg:", crs)
+        if (is(r, "RasterLayer")) sf::st_crs(r) <- paste0("epsg:", crs)
     } else {
-        if (sf::st_crs(p)$proj4string == sf::st_crs(r)$proj4string) {
+        if (is(r, "RasterLayer") & (sf::st_crs(p)$proj4string == sf::st_crs(r)$proj4string)) {
             stop("p and r crs are not equal!")
             return(NA)
         }
@@ -82,7 +77,7 @@ tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.1, observers =
 
     p %<>% filter(sym(paste0(species, badWords)) == 0)
 
-    if (!is.na(r)) {
+    if (is(r, "RasterLayer")) {
         #
         # per species, (observer) and pixel
         #
