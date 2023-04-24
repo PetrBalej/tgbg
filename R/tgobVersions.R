@@ -253,10 +253,11 @@ tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.2, observers =
             observers.unique <- unique(as.vector(unlist(ssos.temp.ratio %>% filter(ratio > ssos.temp.ratio.quantile[1]) %>% dplyr::select(!!sym(observers)))))
             p %<>% mutate(!!paste0(prefix, "ssos", sscn, "_", sp) := ifelse(!!sym(observers) %in% observers.unique, 1, 0))
 
-            # IQR version
-            limitIQR <- unname(quantile(ssos.temp.ratio$ratio, 0.25)) - (1.5 * IQR(ssos.temp.ratio$ratio))
-            observers.unique <- unique(as.vector(unlist(ssos.temp.ratio %>% filter(ratio > limitIQR) %>% dplyr::select(!!sym(observers)))))
-            p %<>% mutate(!!paste0(prefix, "ssosIqr", sscn, "_", sp) := ifelse(!!sym(observers) %in% observers.unique, 1, 0))
+            # remove "outlier" observers with suspicious ratio (lower than centile) + more than 1 observation
+            ssos.temp.ratio %<>% filter(species.n > 1)
+            ssos.temp.ratio.quantile <- unname(quantile(ssos.temp.ratio$ratio, probs = c(0.01)))
+            observers.unique <- unique(as.vector(unlist(ssos.temp.ratio %>% filter(ratio > ssos.temp.ratio.quantile[1]) %>% dplyr::select(!!sym(observers)))))
+            p %<>% mutate(!!paste0(prefix, "ssos1", sscn, "_", sp) := ifelse(!!sym(observers) %in% observers.unique, 1, 0))
         }
     }
 
