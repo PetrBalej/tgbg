@@ -150,7 +150,7 @@ tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.2, observers =
             }
         } else {
             p.TO.stat %<>% add_column(cumsum = cumsum(p.TO.stat$uid.ratio))
-            p.TO.unique <- p.TO.stat %>% filter(uid.ratio <= TO.n)
+            p.TO.unique <- p.TO.stat %>% filter(cumsum <= TO.n)
         }
 
         p.TO.unique <- unique(as.vector(unlist(p.TO.unique)))
