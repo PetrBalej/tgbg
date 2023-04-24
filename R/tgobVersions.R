@@ -15,6 +15,7 @@
 
 tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.1, observers = NA, TO.n = 0.1, observersRemoveSingle = TRUE, badWordsSpecies = NA, badWordsObservers = NA, crs = NA) {
     badWords <- "_badWords"
+    prefix <- "nc_" # new columns with versions to detect
 
     if (!is.na(r) & !is(r, "RasterLayer")) {
         stop("r: only RasterLayer allowed!")
@@ -152,7 +153,7 @@ tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.1, observers =
 
         p.TO.unique <- unique(as.vector(unlist(p.TO.unique)))
         # mark top X observers
-        p %<>% mutate(TO = ifelse(sym(observers) %in% p.TO.unique, 1, 0))
+        p %<>% mutate(sym(paste0(prefix, "TO")) := ifelse(sym(observers) %in% p.TO.unique, 1, 0))
     }
 
     # # # # # # # # # #
@@ -185,7 +186,7 @@ tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.1, observers =
 
     p.TS.unique <- unique(as.vector(unlist(p.TS.unique)))
     # mark top X species
-    p %<>% mutate(TS = ifelse(sym(species) %in% p.TS.unique, 1, 0))
+    p %<>% mutate(sym(paste0(prefix, "TS")) := ifelse(sym(species) %in% p.TS.unique, 1, 0))
 
     # # # # # # # # # #
     # ssos - add species/version columns (0/1)
@@ -240,9 +241,13 @@ tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.1, observers =
 
             # remove "outlier" observers with suspicious ratio (lower than centile)
             ssos.temp.ratio.quantile <- unname(quantile(ssos.temp.ratio$ratio, probs = c(0.01)))
-            observers.unique <- unique(as.vector(unlist(ssos.temp.ratio %>% filter(ratio >= ssos.temp.ratio.quantile[1]) %>% dplyr::select(sym(observers)))))
+            observers.unique <- unique(as.vector(unlist(ssos.temp.ratio %>% filter(ratio > ssos.temp.ratio.quantile[1]) %>% dplyr::select(sym(observers)))))
+            p %<>% mutate(sym(paste0(prefix, "ssos", sscn, "_", sp)) := ifelse(sym(observers) %in% observers.unique, 1, 0))
 
-            p %<>% mutate(sym(paste0("ssos", sscn, "_", sp)) := ifelse(sym(observers) %in% observers.unique, 1, 0))
+            # IQR version
+            limitIQR <- unname(quantile(ssos.temp.ratio$ratio, 0.25)) - (1.5 * IQR(ssos.temp.ratio$ratio))
+            observers.unique <- unique(as.vector(unlist(ssos.temp.ratio %>% filter(ratio > limitIQR) %>% dplyr::select(sym(observers)))))
+            p %<>% mutate(sym(paste0(prefix, "ssosIqr", sscn, "_", sp)) := ifelse(sym(observers) %in% observers.unique, 1, 0))
         }
     }
 
