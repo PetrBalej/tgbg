@@ -224,6 +224,9 @@ tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.2, observers =
             observers.unique <- unique(as.vector(unlist(ssos.temp.v.sp %>% dplyr::select(!!sym(observers)))))
             ssos.temp <- ssos.temp.v %>% filter(!!sym(observers) %in% observers.unique)
 
+            # 0) base
+            p %<>% mutate(!!paste0(prefix, "ssos0", sscn, "_", sp) := ifelse(!!sym(observers) %in% observers.unique, 1, 0))
+
             # count occs per species and observers
             ssos.temp.stat <- ssos.temp %>%
                 ungroup() %>%
@@ -248,16 +251,22 @@ tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.2, observers =
                 left_join(ssos.temp.stat.species, by = as.character(sym(observers))) %>%
                 mutate(ratio = species.n / observers.n)
 
+            # 1) remove single
+            observers.unique <- unique(as.vector(unlist(ssos.temp.ratio %>% filter(species.n > 1) %>% dplyr::select(!!sym(observers)))))
+            p %<>% mutate(!!paste0(prefix, "ssos1", sscn, "_", sp) := ifelse(!!sym(observers) %in% observers.unique, 1, 0))
+
+            # 2) remove centile
             # remove "outlier" observers with suspicious ratio (lower than centile)
             ssos.temp.ratio.quantile <- unname(quantile(ssos.temp.ratio$ratio, probs = c(0.01)))
             observers.unique <- unique(as.vector(unlist(ssos.temp.ratio %>% filter(ratio > ssos.temp.ratio.quantile[1]) %>% dplyr::select(!!sym(observers)))))
-            p %<>% mutate(!!paste0(prefix, "ssos", sscn, "_", sp) := ifelse(!!sym(observers) %in% observers.unique, 1, 0))
+            p %<>% mutate(!!paste0(prefix, "ssos2", sscn, "_", sp) := ifelse(!!sym(observers) %in% observers.unique, 1, 0))
 
+            # 3) remove centile + single
             # remove "outlier" observers with suspicious ratio (lower than centile) + more than 1 observation
             ssos.temp.ratio %<>% filter(species.n > 1)
             ssos.temp.ratio.quantile <- unname(quantile(ssos.temp.ratio$ratio, probs = c(0.01)))
             observers.unique <- unique(as.vector(unlist(ssos.temp.ratio %>% filter(ratio > ssos.temp.ratio.quantile[1]) %>% dplyr::select(!!sym(observers)))))
-            p %<>% mutate(!!paste0(prefix, "ssos1", sscn, "_", sp) := ifelse(!!sym(observers) %in% observers.unique, 1, 0))
+            p %<>% mutate(!!paste0(prefix, "ssos3", sscn, "_", sp) := ifelse(!!sym(observers) %in% observers.unique, 1, 0))
         }
     }
 
