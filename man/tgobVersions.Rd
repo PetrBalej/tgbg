@@ -11,7 +11,9 @@ tgobVersions(
   TS.n = 0.2,
   observers = NA,
   TO.n = 0.2,
-  observersRemoveSingle = TRUE,
+  observersRemoveSingleName = TRUE,
+  observersRemoveSingleOccurrence = 1,
+  quantileThreshold = 0.01,
   badWordsSpecies = NA,
   badWordsObservers = NA,
   crs = NA,
@@ -31,7 +33,11 @@ tgobVersions(
 
 \item{TO.n}{integer or numeric: Ratio (< 1) or int to select for TOP observers}
 
-\item{observersRemoveSingle}{logical: remove single word observers}
+\item{observersRemoveSingleName}{logical: remove single word (name) observers}
+
+\item{observersRemoveSingleOccurrence}{integer: remove observers with single (or specified number) species occurrence from ssos. Can be too restrictive for very rare species, where observers have small chance to re-observe. On the other hand, can be useful to restrict very active observers that record some species only purposefully.}
+
+\item{quantileThreshold}{numeric: 0-1 (centile 0.01, median 0.5, ...)}
 
 \item{badWordsSpecies}{character vector: observers containing unwanted strings}
 
@@ -42,7 +48,7 @@ tgobVersions(
 \item{prefix}{character: new columns prefix with versions to select automatically}
 }
 \value{
-sf (POINT/MULTIPOINT): inserted \emph{p} with new (0/1) columns: TO, TS, ssosTGOB_\emph{species}, ssosTO_\emph{species}, ssosTS_\emph{species}
+List: \emph{t}: sf (POINT/MULTIPOINT): inserted \emph{p} with new (0/1) columns: TO, TS, ssosTGOB_\emph{species}, ssosTO_\emph{species}, ssosTS_\emph{species}; \emph{report}: TO+TS stats uset to treshold selected top O+S
 }
 \description{
 Subsample versions (TO, TS, ssosTO, ssosTS, ssosTGOB) from TGOB

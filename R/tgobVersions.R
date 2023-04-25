@@ -6,22 +6,28 @@
 #' @param TS.n integer or numeric: Ratio (< 1) or int to select for TOP species
 #' @param observers character: column name with observers' names (expected: "John Doe" / "Doe J." / "John Doe, Jane Maria Moe" / "Doe J., Moe J. M." / ...)
 #' @param TO.n integer or numeric: Ratio (< 1) or int to select for TOP observers
-#' @param observersRemoveSingle logical: remove single word observers
+#' @param observersRemoveSingleName logical: remove single word (name) observers
+#' @param observersRemoveSingleOccurrence integer: remove observers with single (or specified number) species occurrence from ssos. Can be too restrictive for very rare species, where observers have small chance to re-observe. On the other hand, can be useful to restrict very active observers that record some species only purposefully.
+#' @param quantileThreshold numeric: 0-1 (centile 0.01, median 0.5, ...)
 #' @param badWordsSpecies character vector: observers containing unwanted strings
 #' @param badWordsObservers character vector: observers containing unwanted strings
 #' @param crs integer: Force crs.
 #' @param prefix character: new columns prefix with versions to select automatically
 #'
-#' @return sf (POINT/MULTIPOINT): inserted \emph{p} with new (0/1) columns: TO, TS, ssosTGOB_\emph{species}, ssosTO_\emph{species}, ssosTS_\emph{species}
+#' @return List: \emph{t}: sf (POINT/MULTIPOINT): inserted \emph{p} with new (0/1) columns: TO, TS, ssosTGOB_\emph{species}, ssosTO_\emph{species}, ssosTS_\emph{species}; \emph{report}: TO+TS stats uset to treshold selected top O+S
 #'
 #' @export
 
-tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.2, observers = NA, TO.n = 0.2, observersRemoveSingle = TRUE, badWordsSpecies = NA, badWordsObservers = NA, crs = NA, prefix = "nc_") {
+tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.2, observers = NA, TO.n = 0.2, observersRemoveSingleName = TRUE, observersRemoveSingleOccurrence = 1, quantileThreshold = 0.01, badWordsSpecies = NA, badWordsObservers = NA, crs = NA, prefix = "nc_") {
+    # TODO: observersRemoveSingleOccurrence not yet implemented (fixed 1)
+
     badWords <- "_badWords"
+
+    out <- list("t" = NA, "report" = NA)
 
     if (!is(p, "sf") & !(sf::st_geometry_type(p, by_geometry = FALSE) == "POINT")) {
         stop("p: only sf/sfc (POINT/MULTIPOINT) allowed!")
-        return(NA)
+        return(out)
     }
 
     if (is.integer(crs)) {
@@ -30,7 +36,7 @@ tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.2, observers =
     } else {
         if (is(r, "RasterLayer") & !(sf::st_crs(p)$proj4string == sf::st_crs(r)$proj4string)) {
             stop("p and r crs are not equal!")
-            return(NA)
+            return(out)
         }
         crs <- raster::crs(r)
     }
@@ -57,7 +63,7 @@ tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.2, observers =
         p %<>% mutate(!!paste0(observers, "_single") := ifelse(stringi::stri_count_fixed(!!sym(observers), " ") == 0, 1, 0))
 
         # remove single word observers
-        if (observersRemoveSingle) {
+        if (observersRemoveSingleName) {
             p %<>% filter(!!sym(paste0(observers, "_single")) == 0)
         }
 
@@ -200,29 +206,33 @@ tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.2, observers =
     ssc <- c("TGOB", "TS", "TO")
     species.unique <- unique(as.vector(unlist(as_tibble(p) %>% dplyr::select(!!sym(species)))))
 
-    # versions
+    # ssos versions
+    p.t <- as_tibble(p) %>% dplyr::select(-geometry)
     for (sscn in ssc) {
         message(paste0("# # # # # # # # # # # # # # # # # # # #"))
         message(paste0("# variant: ", sscn))
         message(paste0("# # # # # # # # # # # # # # # # # # # #"))
-        ssos.temp.v <- as_tibble(p) %>% dplyr::select(-geometry)
-        if (sscn != "TGOB") {
-            ssos.temp.v %<>% filter(!!sym(paste0(prefix, sscn)) == 1)
-        }
 
         # species
         for (sp in species.unique) {
             message(sp)
-            ssos.temp.v.sp <- ssos.temp.v %>% filter(!!sym(species) == sp)
+            p.t.sp <- p.t %>% filter(!!sym(species) == sp)
 
-            if (nrow(ssos.temp.v.sp) < 1) {
+            if (nrow(p.t.sp) < 1) {
                 # zero species occurrences in ssos
                 next
             }
 
             # select observers with at least one occ of selected species
-            observers.unique <- unique(as.vector(unlist(ssos.temp.v.sp %>% dplyr::select(!!sym(observers)))))
-            ssos.temp <- ssos.temp.v %>% filter(!!sym(observers) %in% observers.unique)
+            observers.unique <- unique(as.vector(unlist(p.t.sp %>% dplyr::select(!!sym(observers)))))
+            ssos.temp <- p.t %>% filter(!!sym(observers) %in% observers.unique)
+
+            # filter TO or TS subsets
+            if (sscn != "TGOB") {
+                ssos.temp %<>% filter(!!sym(paste0(prefix, sscn)) == 1)
+                # refresh observers subset
+                observers.unique <- unique(as.vector(unlist(ssos.temp %>% dplyr::select(!!sym(observers)))))
+            }
 
             # 0) base
             p %<>% mutate(!!paste0(prefix, "ssos0", sscn, "_", sp) := ifelse(!!sym(observers) %in% observers.unique, 1, 0))
@@ -257,18 +267,18 @@ tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.2, observers =
 
             # 2) remove centile
             # remove "outlier" observers with suspicious ratio (lower than centile)
-            ssos.temp.ratio.quantile <- unname(quantile(ssos.temp.ratio$ratio, probs = c(0.01)))
+            ssos.temp.ratio.quantile <- unname(quantile(ssos.temp.ratio$ratio, probs = quantileThreshold))
             observers.unique <- unique(as.vector(unlist(ssos.temp.ratio %>% filter(ratio > ssos.temp.ratio.quantile[1]) %>% dplyr::select(!!sym(observers)))))
             p %<>% mutate(!!paste0(prefix, "ssos2", sscn, "_", sp) := ifelse(!!sym(observers) %in% observers.unique, 1, 0))
 
             # 3) remove centile + single
             # remove "outlier" observers with suspicious ratio (lower than centile) + more than 1 observation
             ssos.temp.ratio %<>% filter(species.n > 1)
-            ssos.temp.ratio.quantile <- unname(quantile(ssos.temp.ratio$ratio, probs = c(0.01)))
+            ssos.temp.ratio.quantile <- unname(quantile(ssos.temp.ratio$ratio, probs = quantileThreshold))
             observers.unique <- unique(as.vector(unlist(ssos.temp.ratio %>% filter(ratio > ssos.temp.ratio.quantile[1]) %>% dplyr::select(!!sym(observers)))))
             p %<>% mutate(!!paste0(prefix, "ssos3", sscn, "_", sp) := ifelse(!!sym(observers) %in% observers.unique, 1, 0))
         }
     }
 
-    return(p)
+    return(list("t" = p, "report" = list("TS" = p.TS.stat, "TO" = p.TO.stat, "TS.n" = TS.n, "TO.n" = TO.n)))
 }
