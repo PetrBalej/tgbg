@@ -10,14 +10,14 @@
 #' @param badWordsSpecies character vector: observers containing unwanted strings
 #' @param badWordsObservers character vector: observers containing unwanted strings
 #' @param crs integer: Force crs.
+#' @param prefix character: new columns prefix with versions to select automatically
 #'
 #' @return sf (POINT/MULTIPOINT): inserted \emph{p} with new (0/1) columns: TO, TS, ssosTGOB_\emph{species}, ssosTO_\emph{species}, ssosTS_\emph{species}
 #'
 #' @export
 
-tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.2, observers = NA, TO.n = 0.2, observersRemoveSingle = TRUE, badWordsSpecies = NA, badWordsObservers = NA, crs = NA) {
+tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.2, observers = NA, TO.n = 0.2, observersRemoveSingle = TRUE, badWordsSpecies = NA, badWordsObservers = NA, crs = NA, prefix = "nc_") {
     badWords <- "_badWords"
-    prefix <- "nc_" # new columns with versions to detect
 
     if (!is(p, "sf") & !(sf::st_geometry_type(p, by_geometry = FALSE) == "POINT")) {
         stop("p: only sf/sfc (POINT/MULTIPOINT) allowed!")

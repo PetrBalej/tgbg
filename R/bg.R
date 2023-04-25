@@ -11,7 +11,7 @@
 #' 
 #' @export
 
-bg <- function(p, r, n = 0.1, sigma = c(0.1, 0.5, 1, 2, 3, 4), output = c("br", "bg"), crs = NA, anisotropic = FALSE) {
+bg <- function(p, r, n = 0.1, sigma = c(0.1, 1, 2, 3), output = c("br", "bg"), crs = NA, anisotropic = FALSE) {
     out <- list("br" = NA, "bg" = NA)
 
     if (!is(r, "RasterLayer")) {
@@ -19,18 +19,18 @@ bg <- function(p, r, n = 0.1, sigma = c(0.1, 0.5, 1, 2, 3, 4), output = c("br", 
         return(out)
     }
 
-    if (is(p, "sf") && sf::st_geometry_type(rp, by_geometry = FALSE) == "POINT") {
+    if (!is(p, "sf") & !(sf::st_geometry_type(p, by_geometry = FALSE) == "POINT")) {
         stop("p: only sf/sfc (POINT/MULTIPOINT) allowed!")
         return(out)
     }
 
     if (is.integer(crs)) {
         sf::st_crs(p) <- paste0("epsg:", crs)
-        sf::st_crs(r) <- paste0("epsg:", crs)
+        if (is(r, "RasterLayer")) sf::st_crs(r) <- paste0("epsg:", crs)
     } else {
-        if (sf::st_crs(p)$proj4string == sf::st_crs(r)$proj4string) {
+        if (is(r, "RasterLayer") & !(sf::st_crs(p)$proj4string == sf::st_crs(r)$proj4string)) {
             stop("p and r crs are not equal!")
-            return(out)
+            return(NA)
         }
         crs <- raster::crs(r)
     }

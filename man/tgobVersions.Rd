@@ -14,7 +14,8 @@ tgobVersions(
   observersRemoveSingle = TRUE,
   badWordsSpecies = NA,
   badWordsObservers = NA,
-  crs = NA
+  crs = NA,
+  prefix = "nc_"
 )
 }
 \arguments{
@@ -37,6 +38,8 @@ tgobVersions(
 \item{badWordsObservers}{character vector: observers containing unwanted strings}
 
 \item{crs}{integer: Force crs.}
+
+\item{prefix}{character: new columns prefix with versions to select automatically}
 }
 \value{
 sf (POINT/MULTIPOINT): inserted \emph{p} with new (0/1) columns: TO, TS, ssosTGOB_\emph{species}, ssosTO_\emph{species}, ssosTS_\emph{species}

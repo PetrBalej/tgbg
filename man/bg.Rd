@@ -8,7 +8,7 @@ bg(
   p,
   r,
   n = 0.1,
-  sigma = c(0.1, 0.5, 1, 2, 3, 4),
+  sigma = c(0.1, 1, 2, 3),
   output = c("br", "bg"),
   crs = NA,
   anisotropic = FALSE
