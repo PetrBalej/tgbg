@@ -118,7 +118,7 @@ tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.2, observers =
         # TS
         # per species stats
         p.temp.s <- as_tibble(p %>% dplyr::select(!!sym(species), uid, -geometry)) %>%
-            group_by(!!species)
+            group_by(!!sym(species))
     }
 
     # # # # # # # # # #
@@ -140,7 +140,7 @@ tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.2, observers =
 
         if (TO.n >= 1) {
             # exact number of TOP observers
-            TO.total <- p.temp.o %>% n_distinct(!!sym(observers))
+            TO.total <- p.temp.o %>% n_distinct(as.character(sym(observers)))
             if (TO.n > TO.total) {
                 stop(paste0("Can't get more TOP observers than total number: ", TO.total))
             } else {
@@ -176,7 +176,7 @@ tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.2, observers =
 
     if (TS.n >= 1) {
         # exact number of TOP species
-        TS.total <- p.temp.s %>% n_distinct(!!sym(species))
+        TS.total <- p.temp.s %>% n_distinct(as.character(sym(species)))
         if (TS.n > TS.total) {
             stop(paste0("Can't get more TOP species than total number: ", TS.total))
         } else {
