@@ -2,7 +2,7 @@
 % Please edit documentation in R/tgobVersions.R
 \name{tgobVersions}
 \alias{tgobVersions}
-\title{Subsample versions (TO, TS, ssosTO, ssosTS, ssosTGOB) from TGOB}
+\title{Subsample versions (TO, TS and ssosX_\emph{species}) from TGOB}
 \usage{
 tgobVersions(
   p,
@@ -48,8 +48,8 @@ tgobVersions(
 \item{prefix}{character: new columns prefix with versions to select automatically}
 }
 \value{
-List: \emph{t}: sf (POINT/MULTIPOINT): inserted \emph{p} with new (0/1) columns: TO, TS, ssosTGOB_\emph{species}, ssosTO_\emph{species}, ssosTS_\emph{species}; \emph{report}: TO+TS stats uset to treshold selected top O+S
+List: \emph{t}: sf (POINT/MULTIPOINT): inserted \emph{p} with new (0/1) columns: TO, TS, ssosX_\emph{species}; \emph{report}: TO+TS stats uset to treshold selected top O+S
 }
 \description{
-Subsample versions (TO, TS, ssosTO, ssosTS, ssosTGOB) from TGOB
+Subsample versions (TO, TS and ssosX_\emph{species}) from TGOB
 }

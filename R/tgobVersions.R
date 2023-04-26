@@ -1,4 +1,4 @@
-#' @title Subsample versions (TO, TS, ssosTO, ssosTS, ssosTGOB) from TGOB
+#' @title Subsample versions (TO, TS and ssosX_\emph{species}) from TGOB
 #'
 #' @param p sf/sfc (POINT/MULTIPOINT): Points
 #' @param r RasterLayer: Template raster. If provided, all stats are calculated per raster pixel (cell/square).
@@ -14,7 +14,7 @@
 #' @param crs integer: Force crs.
 #' @param prefix character: new columns prefix with versions to select automatically
 #'
-#' @return List: \emph{t}: sf (POINT/MULTIPOINT): inserted \emph{p} with new (0/1) columns: TO, TS, ssosTGOB_\emph{species}, ssosTO_\emph{species}, ssosTS_\emph{species}; \emph{report}: TO+TS stats uset to treshold selected top O+S
+#' @return List: \emph{t}: sf (POINT/MULTIPOINT): inserted \emph{p} with new (0/1) columns: TO, TS, ssosX_\emph{species}; \emph{report}: TO+TS stats uset to treshold selected top O+S
 #'
 #' @export
 
@@ -203,81 +203,72 @@ tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.2, observers =
     # ssos - add species/version columns (0/1)
     # # # # # # # # # #
 
-    ssc <- c("TGOB", "TS", "TO")
+
     species.unique <- unique(as.vector(unlist(as_tibble(p) %>% dplyr::select(!!sym(species)))))
 
     # ssos versions
     p.t <- as_tibble(p) %>% dplyr::select(-geometry)
-    for (sscn in ssc) {
-        message(paste0("# # # # # # # # # # # # # # # # # # # #"))
-        message(paste0("# variant: ", sscn))
-        message(paste0("# # # # # # # # # # # # # # # # # # # #"))
 
-        # species
-        for (sp in species.unique) {
-            message(sp)
-            p.t.sp <- p.t %>% filter(!!sym(species) == sp)
+    # species
+    for (sp in species.unique) {
+        ssos.temp <- NA
+        message(sp)
+        p.t.sp <- p.t %>% filter(!!sym(species) == sp)
 
-            if (nrow(p.t.sp) < 1) {
-                # zero species occurrences in ssos
-                next
-            }
-
-            # select observers with at least one occ of selected species
-            observers.unique <- unique(as.vector(unlist(p.t.sp %>% dplyr::select(!!sym(observers)))))
-            ssos.temp <- p.t %>% filter(!!sym(observers) %in% observers.unique)
-
-            # filter TO or TS subsets
-            if (sscn != "TGOB") {
-                ssos.temp %<>% filter(!!sym(paste0(prefix, sscn)) == 1)
-                # refresh observers subset
-                observers.unique <- unique(as.vector(unlist(ssos.temp %>% dplyr::select(!!sym(observers)))))
-            }
-
-            # 0) base
-            p %<>% mutate(!!paste0(prefix, "ssos0", sscn, "_", sp) := ifelse(!!sym(observers) %in% observers.unique, 1, 0))
-
-            # count occs per species and observers
-            ssos.temp.stat <- ssos.temp %>%
-                ungroup() %>%
-                group_by(!!sym(species), !!sym(observers)) %>%
-                summarise(uid.n = n_distinct(uid))
-
-            # sum occs per observers
-            ssos.temp.stat.observers <- ssos.temp.stat %>%
-                ungroup() %>%
-                group_by(!!sym(observers)) %>%
-                summarise(observers.n = sum(uid.n))
-
-            # sum occs of selected species per observers
-            ssos.temp.stat.species <- ssos.temp.stat %>%
-                ungroup() %>%
-                filter(!!sym(species) == sp) %>%
-                group_by(!!sym(observers)) %>%
-                summarise(species.n = sum(uid.n))
-
-            # ratio (selected species occs per total occs) per observers
-            ssos.temp.ratio <- ssos.temp.stat.observers %>%
-                left_join(ssos.temp.stat.species, by = as.character(sym(observers))) %>%
-                mutate(ratio = species.n / observers.n)
-
-            # 1) remove single
-            observers.unique <- unique(as.vector(unlist(ssos.temp.ratio %>% filter(species.n > 1) %>% dplyr::select(!!sym(observers)))))
-            p %<>% mutate(!!paste0(prefix, "ssos1", sscn, "_", sp) := ifelse(!!sym(observers) %in% observers.unique, 1, 0))
-
-            # 2) remove centile
-            # remove "outlier" observers with suspicious ratio (lower than centile)
-            ssos.temp.ratio.quantile <- unname(quantile(ssos.temp.ratio$ratio, probs = quantileThreshold))
-            observers.unique <- unique(as.vector(unlist(ssos.temp.ratio %>% filter(ratio > ssos.temp.ratio.quantile[1]) %>% dplyr::select(!!sym(observers)))))
-            p %<>% mutate(!!paste0(prefix, "ssos2", sscn, "_", sp) := ifelse(!!sym(observers) %in% observers.unique, 1, 0))
-
-            # 3) remove centile + single
-            # remove "outlier" observers with suspicious ratio (lower than centile) + more than 1 observation
-            ssos.temp.ratio %<>% filter(species.n > 1)
-            ssos.temp.ratio.quantile <- unname(quantile(ssos.temp.ratio$ratio, probs = quantileThreshold))
-            observers.unique <- unique(as.vector(unlist(ssos.temp.ratio %>% filter(ratio > ssos.temp.ratio.quantile[1]) %>% dplyr::select(!!sym(observers)))))
-            p %<>% mutate(!!paste0(prefix, "ssos3", sscn, "_", sp) := ifelse(!!sym(observers) %in% observers.unique, 1, 0))
+        if (nrow(p.t.sp) < 1) {
+            # zero species occurrences in ssos
+            next
         }
+
+        # select observers with at least one occ of selected species
+        observers.unique <- unique(as.vector(unlist(p.t.sp %>% dplyr::select(!!sym(observers)))))
+        ssos.temp <- p.t %>% filter(!!sym(observers) %in% observers.unique)
+
+
+        # 0) base
+        # jen z TGOB - stejný set observers pro všechny!!!!
+        p %<>% mutate(!!paste0(prefix, "ssos0", "_", sp) := ifelse(!!sym(observers) %in% observers.unique, 1, 0))
+
+        # count occs per species and observers
+        ssos.temp.stat <- ssos.temp %>%
+            ungroup() %>%
+            group_by(!!sym(species), !!sym(observers)) %>%
+            summarise(uid.n = n_distinct(uid))
+
+        # sum occs per observers
+        ssos.temp.stat.observers <- ssos.temp.stat %>%
+            ungroup() %>%
+            group_by(!!sym(observers)) %>%
+            summarise(observers.n = sum(uid.n))
+
+        # sum occs of selected species per observers
+        ssos.temp.stat.species <- ssos.temp.stat %>%
+            ungroup() %>%
+            filter(!!sym(species) == sp) %>%
+            group_by(!!sym(observers)) %>%
+            summarise(species.n = sum(uid.n))
+
+        # ratio (selected species occs per total occs) per observers
+        ssos.temp.ratio <- ssos.temp.stat.observers %>%
+            left_join(ssos.temp.stat.species, by = as.character(sym(observers))) %>%
+            mutate(ratio = species.n / observers.n)
+
+        # 1) remove single
+        observers.unique <- unique(as.vector(unlist(ssos.temp.ratio %>% filter(species.n > 1) %>% dplyr::select(!!sym(observers)))))
+        p %<>% mutate(!!paste0(prefix, "ssos1", "_", sp) := ifelse(!!sym(observers) %in% observers.unique, 1, 0))
+
+        # 2) remove centile
+        # remove "outlier" observers with suspicious ratio (lower than centile)
+        ssos.temp.ratio.quantile <- unname(quantile(ssos.temp.ratio$ratio, probs = quantileThreshold, na.rm = TRUE))
+        observers.unique <- unique(as.vector(unlist(ssos.temp.ratio %>% filter(ratio > ssos.temp.ratio.quantile[1]) %>% dplyr::select(!!sym(observers)))))
+        p %<>% mutate(!!paste0(prefix, "ssos2", "_", sp) := ifelse(!!sym(observers) %in% observers.unique, 1, 0))
+
+        # 3) remove centile + single
+        # remove "outlier" observers with suspicious ratio (lower than centile) + more than 1 observation
+        ssos.temp.ratio %<>% filter(species.n > 1)
+        ssos.temp.ratio.quantile <- unname(quantile(ssos.temp.ratio$ratio, probs = quantileThreshold, na.rm = TRUE))
+        observers.unique <- unique(as.vector(unlist(ssos.temp.ratio %>% filter(ratio > ssos.temp.ratio.quantile[1]) %>% dplyr::select(!!sym(observers)))))
+        p %<>% mutate(!!paste0(prefix, "ssos3", "_", sp) := ifelse(!!sym(observers) %in% observers.unique, 1, 0))
     }
 
     return(list("t" = p, "report" = list("TS" = p.TS.stat, "TO" = p.TO.stat, "TS.n" = TS.n, "TO.n" = TO.n)))
