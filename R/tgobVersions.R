@@ -18,9 +18,7 @@
 #'
 #' @export
 
-tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.2, observers = NA, TO.n = 0.2, observersRemoveSingleName = TRUE, observersRemoveSingleOccurrence = 1, quantileThreshold = 0.01, badWordsSpecies = NA, badWordsObservers = NA, crs = NA, prefix = "nc_") {
-    # TODO: observersRemoveSingleOccurrence not yet implemented (fixed 1)
-
+tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.2, observers = NA, TO.n = 0.2, observersRemoveSingleName = TRUE, observersRemoveSingleOccurrence = 0, quantileThreshold = 0.01, badWordsSpecies = NA, badWordsObservers = NA, crs = NA, prefix = "nc_") {
     badWords <- "_badWords"
 
     out <- list("t" = NA, "report" = NA)
@@ -224,11 +222,6 @@ tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.2, observers =
         observers.unique <- unique(as.vector(unlist(p.t.sp %>% dplyr::select(!!sym(observers)))))
         ssos.temp <- p.t %>% filter(!!sym(observers) %in% observers.unique)
 
-
-        # 0) base
-        # jen z TGOB - stejný set observers pro všechny!!!!
-        p %<>% mutate(!!paste0(prefix, "ssos0", "_", sp) := ifelse(!!sym(observers) %in% observers.unique, 1, 0))
-
         # count occs per species and observers
         ssos.temp.stat <- ssos.temp %>%
             ungroup() %>%
@@ -253,22 +246,22 @@ tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.2, observers =
             left_join(ssos.temp.stat.species, by = as.character(sym(observers))) %>%
             mutate(ratio = species.n / observers.n)
 
-        # 1) remove single
-        observers.unique <- unique(as.vector(unlist(ssos.temp.ratio %>% filter(species.n > 1) %>% dplyr::select(!!sym(observers)))))
-        p %<>% mutate(!!paste0(prefix, "ssos1", "_", sp) := ifelse(!!sym(observers) %in% observers.unique, 1, 0))
+        observersRemoveSingleOccurrence <- as.numeric(observersRemoveSingleOccurrence)
+        if (observersRemoveSingleOccurrence > 0) {
+            # remove single
+            ssos.temp.ratio %<>% filter(species.n > observersRemoveSingleOccurrence)
+            observers.unique <- unique(as.vector(unlist(ssos.temp.ratio %>% dplyr::select(!!sym(observers)))))
+        }
 
-        # 2) remove centile
-        # remove "outlier" observers with suspicious ratio (lower than centile)
-        ssos.temp.ratio.quantile <- unname(quantile(ssos.temp.ratio$ratio, probs = quantileThreshold, na.rm = TRUE))
-        observers.unique <- unique(as.vector(unlist(ssos.temp.ratio %>% filter(ratio > ssos.temp.ratio.quantile[1]) %>% dplyr::select(!!sym(observers)))))
-        p %<>% mutate(!!paste0(prefix, "ssos2", "_", sp) := ifelse(!!sym(observers) %in% observers.unique, 1, 0))
+        quantileThreshold <- as.numeric(quantileThreshold)
+        if (quantileThreshold > 0 & quantileThreshold < 1) {
+            # remove quantile (and/or singles before)
+            # remove "outlier" observers with suspicious ratio (lower than input quantile)
+            ssos.temp.ratio.quantile <- unname(stats::quantile(ssos.temp.ratio$ratio, probs = quantileThreshold, na.rm = TRUE))
+            observers.unique <- unique(as.vector(unlist(ssos.temp.ratio %>% filter(ratio > ssos.temp.ratio.quantile[1]) %>% dplyr::select(!!sym(observers)))))
+        }
 
-        # 3) remove centile + single
-        # remove "outlier" observers with suspicious ratio (lower than centile) + more than 1 observation
-        ssos.temp.ratio %<>% filter(species.n > 1)
-        ssos.temp.ratio.quantile <- unname(quantile(ssos.temp.ratio$ratio, probs = quantileThreshold, na.rm = TRUE))
-        observers.unique <- unique(as.vector(unlist(ssos.temp.ratio %>% filter(ratio > ssos.temp.ratio.quantile[1]) %>% dplyr::select(!!sym(observers)))))
-        p %<>% mutate(!!paste0(prefix, "ssos3", "_", sp) := ifelse(!!sym(observers) %in% observers.unique, 1, 0))
+        p %<>% mutate(!!paste0(prefix, "ssos", "_", sp) := ifelse(!!sym(observers) %in% observers.unique, 1, 0))
     }
 
     return(list("t" = p, "report" = list("TS" = p.TS.stat, "TO" = p.TO.stat, "TS.n" = TS.n, "TO.n" = TO.n)))

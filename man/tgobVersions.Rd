@@ -12,7 +12,7 @@ tgobVersions(
   observers = NA,
   TO.n = 0.2,
   observersRemoveSingleName = TRUE,
-  observersRemoveSingleOccurrence = 1,
+  observersRemoveSingleOccurrence = 0,
   quantileThreshold = 0.01,
   badWordsSpecies = NA,
   badWordsObservers = NA,
