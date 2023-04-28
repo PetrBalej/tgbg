@@ -1,6 +1,6 @@
 #' @title Subsample versions (TO, TS and ssosX_\emph{species}) from TGOB
 #'
-#' @param p sf/sfc (POINT/MULTIPOINT): Points
+#' @param p sf/sfc (POINT/MULTIPOINT): Points (TGOB)
 #' @param r RasterLayer: Template raster. If provided, all stats are calculated per raster pixel (cell/square).
 #' @param species character: column name with species name
 #' @param TS.n integer or numeric: Ratio (< 1) or int to select for TOP species
@@ -8,13 +8,13 @@
 #' @param TO.n integer or numeric: Ratio (< 1) or int to select for TOP observers
 #' @param observersRemoveSingleName logical: remove single word (name) observers
 #' @param observersRemoveSingleOccurrence integer: remove observers with single (or specified number) species occurrence from ssos. Can be too restrictive for very rare species, where observers have small chance to re-observe. On the other hand, can be useful to restrict very active observers that record some species only purposefully.
-#' @param quantileThreshold numeric: 0-1 (centile 0.01, median 0.5, ...)
-#' @param badWordsSpecies character vector: observers containing unwanted strings
-#' @param badWordsObservers character vector: observers containing unwanted strings
+#' @param quantileThreshold numeric: (0-1) (centile 0.01, decile 0.10, ...) threshold to remove individual lower outlier observers with "suspicious" (purposefull) \emph{observation ratio} (pattern) of $\frac{focus species}{rest of species}$ compared to overall observers \emph{observation ratio}
+#' @param badWordsSpecies character vector: if species name containing unwanted strings, remove such rows
+#' @param badWordsObservers character vector: if observers name containing unwanted strings, remove such rows
 #' @param crs integer: Force crs.
 #' @param prefix character: new columns prefix with versions to select automatically
 #'
-#' @return List: \emph{t}: sf (POINT/MULTIPOINT): inserted \emph{p} with new (0/1) columns: TO, TS, ssosX_\emph{species}; \emph{report}: TO+TS stats uset to treshold selected top O+S
+#' @return List: \emph{t}: sf (POINT/MULTIPOINT): inserted \emph{p} with new (0/1) columns: TO, TS, ssosX_\emph{species}; \emph{report}: TO+TS stats used to threshold selected top O+S
 #'
 #' @export
 

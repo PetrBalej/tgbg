@@ -21,7 +21,7 @@ tgobVersions(
 )
 }
 \arguments{
-\item{p}{sf/sfc (POINT/MULTIPOINT): Points}
+\item{p}{sf/sfc (POINT/MULTIPOINT): Points (TGOB)}
 
 \item{r}{RasterLayer: Template raster. If provided, all stats are calculated per raster pixel (cell/square).}
 
@@ -37,18 +37,18 @@ tgobVersions(
 
 \item{observersRemoveSingleOccurrence}{integer: remove observers with single (or specified number) species occurrence from ssos. Can be too restrictive for very rare species, where observers have small chance to re-observe. On the other hand, can be useful to restrict very active observers that record some species only purposefully.}
 
-\item{quantileThreshold}{numeric: 0-1 (centile 0.01, median 0.5, ...)}
+\item{quantileThreshold}{numeric: (0-1) (centile 0.01, decile 0.10, ...) threshold to remove individual lower outlier observers with "suspicious" (purposefull) \emph{observation ratio} (pattern) of $\frac{focus species}{rest of species}$ compared to overall observers \emph{observation ratio}}
 
-\item{badWordsSpecies}{character vector: observers containing unwanted strings}
+\item{badWordsSpecies}{character vector: if species name containing unwanted strings, remove such rows}
 
-\item{badWordsObservers}{character vector: observers containing unwanted strings}
+\item{badWordsObservers}{character vector: if observers name containing unwanted strings, remove such rows}
 
 \item{crs}{integer: Force crs.}
 
 \item{prefix}{character: new columns prefix with versions to select automatically}
 }
 \value{
-List: \emph{t}: sf (POINT/MULTIPOINT): inserted \emph{p} with new (0/1) columns: TO, TS, ssosX_\emph{species}; \emph{report}: TO+TS stats uset to treshold selected top O+S
+List: \emph{t}: sf (POINT/MULTIPOINT): inserted \emph{p} with new (0/1) columns: TO, TS, ssosX_\emph{species}; \emph{report}: TO+TS stats used to threshold selected top O+S
 }
 \description{
 Subsample versions (TO, TS and ssosX_\emph{species}) from TGOB
