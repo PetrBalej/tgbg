@@ -28,7 +28,7 @@ bg(
 \item{crs}{integer: Force crs.}
 }
 \value{
-List: \emph{br}: RasterLayer (bias raster); \emph{bg}: sf (POINT/MULTIPOINT) (background points) with nested List of choosen \emph{sigma} levels
+named list: \emph{br}: RasterLayer (bias raster); \emph{bg}: sf (POINT/MULTIPOINT) (background points) with nested List of choosen \emph{sigma} levels
 }
 \description{
 Generate bias raster (Kernel Smoothed Intensity of Point Pattern, density.ppp) and/or corresponding background points
