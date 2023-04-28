@@ -8,7 +8,7 @@
 #' @param crs integer: Force crs.
 #'
 #' @return List: \emph{br}: RasterLayer (bias raster); \emph{bg}: sf (POINT/MULTIPOINT) (background points) with nested List of choosen \emph{sigma} levels
-#' 
+#'
 #' @export
 
 bg <- function(p, r, n = 0.1, sigma = c(0.1, 1, 2, 3), output = c("br", "bg"), crs = NA, anisotropic = FALSE) {
@@ -72,14 +72,15 @@ bg <- function(p, r, n = 0.1, sigma = c(0.1, 1, 2, 3), output = c("br", "bg"), c
         br.temp <- ((br.temp - r.min) / (r.max - r.min))
         br.temp <- raster::setMinMax(br.temp)
 
-        br[[as.character(adj)]] <- NA
+        adj <- as.character(adj)
+        br[[adj]] <- NA
         if (is.element("br", output)) {
-            br[[as.character(adj)]] <- br.temp
+            br[[adj]] <- br.temp
         }
 
-        bg[[as.character(adj)]] <- NA
+        bg[[adj]] <- NA
         if (is.element("bg", output)) {
-            bg[[as.character(adj)]] <- tgbg::sample(br.temp, n, prob = TRUE, crs = crs)
+            bg[[adj]] <- tgbg::sample(br.temp, n, prob = TRUE, crs = crs)
         }
     }
 
