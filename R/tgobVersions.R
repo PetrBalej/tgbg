@@ -8,13 +8,13 @@
 #' @param TO.n integer or numeric: Ratio (< 1) or int to select for TOP observers
 #' @param observersRemoveSingleName logical: remove single word (name) observers
 #' @param observersRemoveSingleOccurrence integer: remove observers with single (or specified number) species occurrence from ssos. Can be too restrictive for very rare species, where observers have small chance to re-observe. On the other hand, can be useful to restrict very active observers that record some species only purposefully.
-#' @param quantileThreshold numeric: (0-1) (centile 0.01, decile 0.10, ...) threshold to remove individual lower outlier observers with "suspicious" (purposefull) \emph{observation ratio} (pattern) of $\frac{focus species}{rest of species}$ compared to overall observers \emph{observation ratio}
+#' @param quantileThreshold numeric: (0-1) (centile 0.01, decile 0.10, ...) threshold to remove individual lower outlier observers with "suspicious" (purposefull) pattern, calculated as \emph{observational ratio} (Σ\emph{focus species} / Σ\emph{rest of species}) compared to overall observers \emph{observational ratio}. In other words: comparing (per species, \emph{ssos}?) each observers' profile (sums of species occurerrences) to overall observers' profile and then remove outliers.
 #' @param badWordsSpecies character vector: if species name containing unwanted strings, remove such rows
 #' @param badWordsObservers character vector: if observers name containing unwanted strings, remove such rows
 #' @param crs integer: Force crs.
-#' @param prefix character: new columns prefix with versions to select automatically
+#' @param prefix character: prefix for newly added columns to \emph{p} with binary (0/1) sign that links affiliation to version (to select it easily later)
 #'
-#' @return List: \emph{t}: sf (POINT/MULTIPOINT): inserted \emph{p} with new (0/1) columns: TO, TS, ssosX_\emph{species}; \emph{report}: TO+TS stats used to threshold selected top O+S
+#' @return named list: \emph{t}: sf (POINT/MULTIPOINT): inserted \emph{p} with new (0/1) columns: TO, TS, ssosX_\emph{species}; \emph{report}: TO+TS stats used to threshold selected top O+S
 #'
 #' @export
 
