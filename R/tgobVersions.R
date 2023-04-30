@@ -1,14 +1,16 @@
 #' @title Subsample versions (TO, TS and ssosX_\emph{species}) from TGOB
 #'
-#' @param p sf/sfc (POINT/MULTIPOINT): Points (TGOB)
+#' @param p sf/sfc (POINT/MULTIPOINT): point occurrences (TGOB)
 #' @param r RasterLayer: Template raster. If provided, all stats are calculated per raster pixel (cell/square).
 #' @param species character: column name with species name
-#' @param TS.n integer or numeric: Ratio (< 1) or int to select for TOP species
+#' @param TS.n integer or numeric: int or ratio (< 1, \code{cumsum} \emph{p}) to select for TOP species
 #' @param observers character: column name with observers' names (expected: "John Doe" / "Doe J." / "John Doe, Jane Maria Moe" / "Doe J., Moe J. M." / ...)
-#' @param TO.n integer or numeric: Ratio (< 1) or int to select for TOP observers
+#' @param TO.n integer or numeric: int or ratio (< 1, \code{cumsum} \emph{p}) to select for TOP observers
 #' @param observersRemoveSingleName logical: remove single word (name) observers
 #' @param observersRemoveSingleOccurrence integer: remove observers with single (or specified number) species occurrence from ssos. Can be too restrictive for very rare species, where observers have small chance to re-observe. On the other hand, can be useful to restrict very active observers that record some species only purposefully.
-#' @param quantileThreshold numeric: (0-1) (centile 0.01, decile 0.10, ...) threshold to remove individual lower outlier observers with "suspicious" (purposefull) pattern, calculated as \emph{observational ratio} (Σ\emph{focus species} / Σ\emph{rest of species}) compared to overall observers \emph{observational ratio}. In other words: comparing (per species, \emph{ssos}?) each observers' profile (sums of species occurerrences) to overall observers' profile and then remove outliers.
+#' @param quantileObserversThreshold numeric: (0-1) (centile 0.01, decile 0.10, ...) threshold to remove individual lower outlier observers with "suspicious" (purposefull) pattern, calculated as \emph{observational ratio} (Σ\emph{focus species} / Σ\emph{rest of species}) compared to overall observers \emph{observational ratio}. In other words: comparing (per species, \emph{ssos}?) each observers' profile (sums of species occurerrences) to overall observers' profile and then remove outliers.
+#' @param TSAO.n integer or numeric: int or quantile (< 1, upper quartile 0.75, ...) to select for TOP species by Area Overlap (overlaping occupied cells with focus species). Can be done only with inserted \emph{r}!
+#' @param TSAO.min numeric (0-1): minimum ratio overlap to threshold before \emph{TSAO.n} is applied
 #' @param badWordsSpecies character vector: if species name containing unwanted strings, remove such rows
 #' @param badWordsObservers character vector: if observers name containing unwanted strings, remove such rows
 #' @param crs integer: Force crs.
@@ -18,7 +20,7 @@
 #'
 #' @export
 
-tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.2, observers = NA, TO.n = 0.2, observersRemoveSingleName = TRUE, observersRemoveSingleOccurrence = 0, quantileThreshold = 0.01, badWordsSpecies = NA, badWordsObservers = NA, crs = NA, prefix = "nc_") {
+tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.2, observers = NA, TO.n = 0.2, observersRemoveSingleName = TRUE, observersRemoveSingleOccurrence = 0, quantileObserversThreshold = 0.01, TSAO.n = 0.8, TSAO.min = 0.5, badWordsSpecies = NA, badWordsObservers = NA, crs = NA, prefix = "nc_") {
     badWords <- "_badWords"
 
     out <- list("t" = NA, "report" = NA)
@@ -157,7 +159,7 @@ tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.2, observers =
             p.TO.unique <- p.TO.stat %>% filter(cumsum <= TO.n)
         }
 
-        p.TO.unique <- unique(as.vector(unlist(p.TO.unique)))
+        p.TO.unique <- unique(as.vector(unlist(p.TO.unique %>% dplyr::select(!!sym(observers)))))
         # mark top X observers
         p %<>% mutate(!!paste0(prefix, "TO") := ifelse(!!sym(observers) %in% p.TO.unique, 1, 0))
     }
@@ -193,7 +195,7 @@ tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.2, observers =
         p.TS.unique <- p.TS.stat %>% filter(cumsum <= TS.n)
     }
 
-    p.TS.unique <- unique(as.vector(unlist(p.TS.unique)))
+    p.TS.unique <- unique(as.vector(unlist(p.TS.unique %>% dplyr::select(!!sym(species)))))
     # mark top X species
     p %<>% mutate(!!paste0(prefix, "TS") := ifelse(!!sym(species) %in% p.TS.unique, 1, 0))
 
@@ -206,6 +208,8 @@ tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.2, observers =
 
     # ssos versions
     p.t <- as_tibble(p) %>% dplyr::select(-geometry)
+    TSAO.min.species <- c()
+    TSAO.top <- list()
 
     # species
     for (sp in species.unique) {
@@ -253,16 +257,78 @@ tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.2, observers =
             observers.unique <- unique(as.vector(unlist(ssos.temp.ratio %>% dplyr::select(!!sym(observers)))))
         }
 
-        quantileThreshold <- as.numeric(quantileThreshold)
-        if (quantileThreshold > 0 & quantileThreshold < 1) {
+        quantileObserversThreshold <- as.numeric(quantileObserversThreshold)
+        if (quantileObserversThreshold > 0 & quantileObserversThreshold < 1) {
             # remove quantile (and/or singles before)
             # remove "outlier" observers with suspicious ratio (lower than input quantile)
-            ssos.temp.ratio.quantile <- unname(stats::quantile(ssos.temp.ratio$ratio, probs = quantileThreshold, na.rm = TRUE))
+            ssos.temp.ratio.quantile <- unname(stats::quantile(ssos.temp.ratio$ratio, probs = quantileObserversThreshold, na.rm = TRUE))
             observers.unique <- unique(as.vector(unlist(ssos.temp.ratio %>% filter(ratio > ssos.temp.ratio.quantile[1]) %>% dplyr::select(!!sym(observers)))))
         }
 
         p %<>% mutate(!!paste0(prefix, "ssos", "_", sp) := ifelse(!!sym(observers) %in% observers.unique, 1, 0))
+
+        # # # # # # # # # #
+        # TSAO
+        # # # # # # # # # #
+        if (is(r, "RasterLayer")) {
+            ss.total <- length(unique(p.t.sp$cellNumber))
+
+            p.TSAO.stat <- p.temp.s %>%
+                ungroup() %>%
+                group_by(!!sym(species)) %>%
+                filter(cellNumber %in% unique(p.t.sp$cellNumber)) %>%
+                summarise(
+                    cells.shared = n_distinct(cellNumber),
+                    cells.shared.ratio = n_distinct(cellNumber) / ss.total
+                ) %>%
+                arrange(desc(cells.shared))
+
+            # remove focus species (100 % overlap...)
+            p.TSAO.stat %<>% filter(!!sym(species) != sp)
+
+            if (nrow(p.TSAO.stat) > 0) {
+                if (TSAO.n >= 1) {
+                    # exact number of TOP species
+                    p.TSAO.unique <- p.TSAO.stat %>% slice_head(n = TSAO.n)
+                } else {
+                    if (nrow(p.TSAO.stat %>% filter(cells.shared.ratio > TSAO.min)) >= 3) {
+                        # left only >50 % overlaping species with more than 3 species
+                        p.TSAO.stat.temp <- p.TSAO.stat %>% filter(cells.shared.ratio > TSAO.min)
+                        tsao.quantile <- NA
+                        tsao.quantile <- unname(stats::quantile(p.TSAO.stat.temp$cells.shared, probs = TSAO.n, na.rm = TRUE))
+
+                        if (nrow(p.TSAO.stat.temp %>% filter(cells.shared > tsao.quantile)) >= 3) {
+                            p.TSAO.unique <- p.TSAO.stat.temp %>% filter(cells.shared > tsao.quantile)
+                        } else {
+                            message(paste0("Less than 3 ovelaping species with >", TSAO.min, " overlap and quantile ", TSAO.n, ". Left 3 top species"))
+                            TSAO.min.species <- c(TSAO.min.species, sp)
+                            p.TSAO.unique <- p.TSAO.stat %>% slice_head(n = 3)
+                        }
+                    } else {
+                        message(paste0("Less than 3 ovelaping species with >", TSAO.min, " overlap. Left 3 top species"))
+                        TSAO.min.species <- c(TSAO.min.species, sp)
+                        p.TSAO.unique <- p.TSAO.stat %>% slice_head(n = 3)
+                    }
+                    TSAO.top[[sp]] <- p.TSAO.unique
+                }
+            } else {
+                message("No overlaping species...")
+                next
+            }
+
+            p.TSAO.unique <- unique(as.vector(unlist(p.TSAO.unique %>% dplyr::select(!!sym(species)))))
+
+            # mark top X  AO species
+            p %<>% mutate(!!paste0(prefix, "TSAO", "_", sp) := ifelse(!!sym(species) %in% p.TSAO.unique, 1, 0))
+        }
     }
 
-    return(list("t" = p, "report" = list("TS" = p.TS.stat, "TO" = p.TO.stat, "TS.n" = TS.n, "TO.n" = TO.n)))
+    return(list(
+        "t" = p,
+        "report" = list(
+            "TS" = p.TS.stat, "TS.n" = TS.n,
+            "TO" = p.TO.stat, "TO.n" = TO.n,
+            "TSAO" = TSAO.top, "TSAO.n" = TSAO.n, "TSAO.min.species" = TSAO.min.species
+        )
+    ))
 }
