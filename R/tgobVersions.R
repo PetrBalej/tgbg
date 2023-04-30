@@ -284,30 +284,30 @@ tgobVersions <- function(p, r = NA, species = "species", TS.n = 0.2, observers =
                 arrange(desc(cells.shared))
 
             # remove focus species (100 % overlap...)
-            p.TSAO.stat %<>% filter(!!sym(species) != sp)
+            # p.TSAO.stat %<>% filter(!!sym(species) != sp)
 
             if (nrow(p.TSAO.stat) > 0) {
                 if (TSAO.n >= 1) {
                     # exact number of TOP species
                     p.TSAO.unique <- p.TSAO.stat %>% slice_head(n = TSAO.n)
                 } else {
-                    if (nrow(p.TSAO.stat %>% filter(cells.shared.ratio > TSAO.min)) >= 3) {
+                    if (nrow(p.TSAO.stat %>% filter(cells.shared.ratio > TSAO.min)) >= 4) {
                         # left only >50 % overlaping species with more than 3 species
                         p.TSAO.stat.temp <- p.TSAO.stat %>% filter(cells.shared.ratio > TSAO.min)
                         tsao.quantile <- NA
                         tsao.quantile <- unname(stats::quantile(p.TSAO.stat.temp$cells.shared, probs = TSAO.n, na.rm = TRUE))
 
-                        if (nrow(p.TSAO.stat.temp %>% filter(cells.shared > tsao.quantile)) >= 3) {
+                        if (nrow(p.TSAO.stat.temp %>% filter(cells.shared > tsao.quantile)) >= 4) {
                             p.TSAO.unique <- p.TSAO.stat.temp %>% filter(cells.shared > tsao.quantile)
                         } else {
                             message(paste0("Less than 3 ovelaping species with >", TSAO.min, " overlap and quantile ", TSAO.n, ". Left 3 top species"))
                             TSAO.min.species <- c(TSAO.min.species, sp)
-                            p.TSAO.unique <- p.TSAO.stat %>% slice_head(n = 3)
+                            p.TSAO.unique <- p.TSAO.stat %>% slice_head(n = 4)
                         }
                     } else {
                         message(paste0("Less than 3 ovelaping species with >", TSAO.min, " overlap. Left 3 top species"))
                         TSAO.min.species <- c(TSAO.min.species, sp)
-                        p.TSAO.unique <- p.TSAO.stat %>% slice_head(n = 3)
+                        p.TSAO.unique <- p.TSAO.stat %>% slice_head(n = 4)
                     }
                     TSAO.top[[sp]] <- p.TSAO.unique
                 }
