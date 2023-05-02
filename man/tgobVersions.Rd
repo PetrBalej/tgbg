@@ -2,54 +2,60 @@
 % Please edit documentation in R/tgobVersions.R
 \name{tgobVersions}
 \alias{tgobVersions}
-\title{Subsample versions (TO, TS and ssosX_\emph{species}) from TGOB}
+\title{Subsample versions (TO, TS and ssoX_\emph{species}) from TGOB}
 \usage{
 tgobVersions(
   p,
   r = NA,
   species = "species",
-  TS.n = 0.2,
   observers = NA,
+  TS.n = 0.2,
   TO.n = 0.2,
+  TSAO.n = 0.8,
+  TSAO.min = 0.5,
+  prefix = "nc_",
   observersRemoveSingleName = TRUE,
   observersRemoveSingleOccurrence = 0,
-  quantileThreshold = 0.01,
+  quantileObserversThreshold = 0.01,
   badWordsSpecies = NA,
   badWordsObservers = NA,
-  crs = NA,
-  prefix = "nc_"
+  crs = NA
 )
 }
 \arguments{
-\item{p}{sf/sfc (POINT/MULTIPOINT): Points (TGOB)}
+\item{p}{sf/sfc (POINT/MULTIPOINT): point occurrences (TGOB)}
 
 \item{r}{RasterLayer: Template raster. If provided, all stats are calculated per raster pixel (cell/square).}
 
 \item{species}{character: column name with species name}
 
-\item{TS.n}{integer or numeric: Ratio (< 1) or int to select for TOP species}
-
 \item{observers}{character: column name with observers' names (expected: "John Doe" / "Doe J." / "John Doe, Jane Maria Moe" / "Doe J., Moe J. M." / ...)}
 
-\item{TO.n}{integer or numeric: Ratio (< 1) or int to select for TOP observers}
+\item{TS.n}{integer or numeric: int or ratio (< 1, \code{cumsum} \emph{p}) to select for TOP species}
+
+\item{TO.n}{integer or numeric: int or ratio (< 1, \code{cumsum} \emph{p}) to select for TOP observers}
+
+\item{TSAO.n}{integer or numeric: int or quantile (< 1, upper quartile 0.75, ...) to select for TOP species by Area Overlap (overlaping occupied cells with focus species). Can be done only with inserted \emph{r}!}
+
+\item{TSAO.min}{numeric (0-1): minimum ratio overlap to threshold before \emph{TSAO.n} is applied}
+
+\item{prefix}{character: prefix for newly added columns to \emph{p} with binary (0/1) sign that links affiliation to version (to select it easily later)}
 
 \item{observersRemoveSingleName}{logical: remove single word (name) observers}
 
-\item{observersRemoveSingleOccurrence}{integer: remove observers with single (or specified number) species occurrence from ssos. Can be too restrictive for very rare species, where observers have small chance to re-observe. On the other hand, can be useful to restrict very active observers that record some species only purposefully.}
+\item{observersRemoveSingleOccurrence}{integer: remove observers with single (or specified number) species occurrence from sso. Can be too restrictive for very rare species, where observers have small chance to re-observe. On the other hand, can be useful to restrict very active observers that record some species only purposefully.}
 
-\item{quantileThreshold}{numeric: (0-1) (centile 0.01, decile 0.10, ...) threshold to remove individual lower outlier observers with "suspicious" (purposefull) pattern, calculated as \emph{observational ratio} (Σ\emph{focus species} / Σ\emph{rest of species}) compared to overall observers \emph{observational ratio}. In other words: comparing (per species, \emph{ssos}?) each observers' profile (sums of species occurerrences) to overall observers' profile and then remove outliers.}
+\item{quantileObserversThreshold}{numeric: (0-1) (centile 0.01, decile 0.10, ...) threshold to remove individual lower outlier observers with "suspicious" (purposefull) pattern, calculated as \emph{observational ratio} (Σ\emph{focus species} / Σ\emph{rest of species}) compared to overall observers \emph{observational ratio}. In other words: comparing (per species, \emph{sso}?) each observers' profile (sums of species occurerrences) to overall observers' profile and then remove outliers.}
 
 \item{badWordsSpecies}{character vector: if species name containing unwanted strings, remove such rows}
 
 \item{badWordsObservers}{character vector: if observers name containing unwanted strings, remove such rows}
 
 \item{crs}{integer: Force crs.}
-
-\item{prefix}{character: prefix for newly added columns to \emph{p} with binary (0/1) sign that links affiliation to version (to select it easily later)}
 }
 \value{
-named list: \emph{t}: sf (POINT/MULTIPOINT): inserted \emph{p} with new (0/1) columns: TO, TS, ssosX_\emph{species}; \emph{report}: TO+TS stats used to threshold selected top O+S
+named list: \emph{p}: sf (POINT/MULTIPOINT): inserted \emph{p} with new (0/1) columns: TO, TS, TSAO ssoX_\emph{species}; \emph{report}: TO+TS+TSAO stats used to threshold selected top O+S
 }
 \description{
-Subsample versions (TO, TS and ssosX_\emph{species}) from TGOB
+Subsample versions (TO, TS and ssoX_\emph{species}) from TGOB
 }
