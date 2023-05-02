@@ -28,3 +28,5 @@ Ranc, N., Santini, L., Rondinini, C., Boitani, L., Poitevin, F., Angerbjörn, A.
 Botella, C., Joly, A., Monestiez, P., Bonnet, P. and Munoz, F., 2020. Bias in presence-only niche models related to sampling effort and species niches: Lessons for background point selection. PLoS One, 15(5), p.e0232078. <https://doi.org/10.1371/journal.pone.0232078>
 
 Komori, O., Eguchi, S., Saigusa, Y., Kusumoto, B. and Kubota, Y., 2020. Sampling bias correction in species distribution models by quasi-linear Poisson point process. Ecological Informatics, 55, p.101015. <https://doi.org/10.1016/j.ecoinf.2019.101015>
+
+Chauvier, Y., Zimmermann, N.E., Poggiato, G., Bystrova, D., Brun, P. and Thuiller, W., 2021. Novel methods to correct for observer and sampling bias in presence‐only species distribution models. Global Ecology and Biogeography, 30(11), pp.2312-2325. <https://doi.org/10.1111/geb.13383>
