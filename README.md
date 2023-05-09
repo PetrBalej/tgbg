@@ -1,4 +1,4 @@
-# tgbg (Target-Group Background Generator)
+# *tgbg*: Target-Group Background Generator
 
 *Target-Group (Occurrences) Background (and Bias Raster) Generator*
 
