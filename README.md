@@ -15,6 +15,8 @@ ad 4) Focus species specific modification of 3). Select for TOP X species by Are
 
 ad 5) "*Shared Species-Observers* subsample of previous versions". The principle is to subsample from previous variants (1-4) only those observers who have already observed the selected species at least once (or more). This simple rule can be implemented at the query level of the species occurrence database by matching the names of observers and filtering out observers with zero records of selected species. We assume that it removes potentially detrimental noise from sampling effort from observers who are not sure that they are able to determine the given species or do not map it purposefully. 
 
+![Variants: TGOB, TO, TS, TSAO, TGOBsso, TOsso, TSsso, TSAOsso](/files/diagram.png)
+
 ## Sources (basics):
 
 Dudík, M., Phillips, S. and Schapire, R.E., 2005. Correcting sample selection bias in maximum entropy density estimation. Advances in neural information processing systems, 18. <https://dl.acm.org/doi/10.5555/2976248.2976289>
