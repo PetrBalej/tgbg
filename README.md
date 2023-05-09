@@ -27,6 +27,8 @@ Phillips, S.J., Dudík, M., Elith, J., Graham, C.H., Lehmann, A., Leathwick, J. 
 
 Ranc, N., Santini, L., Rondinini, C., Boitani, L., Poitevin, F., Angerbjörn, A. and Maiorano, L., 2017. Performance tradeoffs in target‐group bias correction for species distribution models. Ecography, 40(9), pp.1076-1087. <https://doi.org/10.1111/ecog.02414>
 
+Vollering, J., Halvorsen, R., Auestad, I. and Rydgren, K., 2019. Bunching up the background betters bias in species distribution models. Ecography, 42(10), pp.1717-1727. <https://doi.org/10.1111/ecog.04503>
+
 Botella, C., Joly, A., Monestiez, P., Bonnet, P. and Munoz, F., 2020. Bias in presence-only niche models related to sampling effort and species niches: Lessons for background point selection. PLoS One, 15(5), p.e0232078. <https://doi.org/10.1371/journal.pone.0232078>
 
 Komori, O., Eguchi, S., Saigusa, Y., Kusumoto, B. and Kubota, Y., 2020. Sampling bias correction in species distribution models by quasi-linear Poisson point process. Ecological Informatics, 55, p.101015. <https://doi.org/10.1016/j.ecoinf.2019.101015>
