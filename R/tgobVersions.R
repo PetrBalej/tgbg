@@ -1,4 +1,4 @@
-#' @title Subsample versions (TO, TS, TSAO, ssoTO, ssoTS, ssoTSAO, ssoTGOB) from TGOB
+#' @title Subsample versions (TO, TS, TSAO, TOsso, TSsso, TSAOsso, TGOBsso) from TGOB
 #'
 #' @param p sf/sfc (POINT/MULTIPOINT): point occurrences (TGOB)
 #' @param r RasterLayer: Template raster. If provided, all stats are calculated per raster pixel (cell/square).

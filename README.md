@@ -7,7 +7,7 @@
 2) **TO**: Top X Observers subsample of TGOB
 3) **TS**: Top X Species subsample of TGOB
 4) **TSAO**\*: Top X Species by Area Overlap subsample of TGOB
-5) **sso**\*: *Shared Species-Observers* subsample of previous versions: ssoTGOB, ssoTO, ssoTS, ssoTSAO
+5) **sso**\*: *Shared Species-Observers* subsample of previous versions: TGOBsso, TOsso, TSsso, TSAOsso
 
 \* In order to standardise the intensity of sampling effort with respect to individual species, we propose two new concepts: 
 
