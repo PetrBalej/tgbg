@@ -73,7 +73,7 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
         p %<>% mutate(!!observers := stringr::str_squish(!!sym(observers)))
 
         # replace non alphanumeric+space chars - možnost zadat přímo string do reguláru!!!
-        p %<>% mutate(!!observers := str_replace_all(df$name.trans, "[^[:alnum:]| ]", "_"))
+        p %<>% mutate(!!observers := str_replace_all(!!sym(observers), "[^[:alnum:]| ]", "_"))
 
 
         # mark single word observers (nesmysl, pokud jsou tam unikátní stringy, třeba přezdívky)
@@ -194,6 +194,12 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
         p.TO.unique <- unique(as.vector(unlist(p.TO.unique %>% dplyr::select(!!sym(observers)))))
         # mark top X observers
         p %<>% mutate(!!paste0(prefix, "TO") := ifelse(!!sym(observers) %in% p.TO.unique, 1, 0))
+
+### # wTO
+return(p.TO.stat)
+stop()
+p %<>% mutate(!!paste0(prefix, "wTO") := ifelse(!!sym(observers) %in% p.TO.unique, 1, 0))
+
     }
 
     # # # # # # # # # #
