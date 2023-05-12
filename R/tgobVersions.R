@@ -21,7 +21,11 @@
 #' @export
 
 tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 0.2, TO.n = 0.2, TSAO.n = 0.8, TSAO.min = 0.5, prefix = "nc_", observersRemoveSingleName = TRUE, observersRemoveSingleOccurrence = 0, quantileObserversThreshold = 0.01, badWordsSpecies = NA, badWordsObservers = NA, crs = NA) {
+
+    # not change original data, just add new prefixed columns with weights or binary sign
+
     badWords <- "_badWords"
+    uid <- paste0(prefix, "uid")
 
     out <- list("t" = NA, "report" = NA)
 
@@ -41,73 +45,101 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
         crs <- raster::crs(r)
     }
 
-    p %<>% ungroup() %>% mutate(uid = row_number())
+    p %<>% ungroup() %>% mutate(!!uid := row_number())
 
     # # # # # # # # # #
     # prepare sso  + prefilter badWords
     # # # # # # # # # #
 
     if (!is.na(observers)) {
-        # save original observers' names
-        p %<>% mutate(!!paste0(observers, "_orig") := !!sym(observers))
+        # re-save observers' names to prefixed column and re-assign original variable name
+        observers.temp <- paste0(prefix, observers)
+        p %<>% mutate(!!observers.temp := !!sym(observers))
+        observers <- observers.temp
 
-        # remove non-latin characters + lowercase
-        p %<>% mutate(!!observers := tolower(stringi::stri_trans_general(str = !!sym(observers), id = "Latin-ASCII")))
+        #
+        # vše níže v nastavení - nechat základní vhodné defaultní a další volitelné,,, udělat nějak hromadně vektorem, co chci odstranit
+        #
+        # replace accents
+        p %<>% mutate(!!observers := stringi::stri_trans_general(str = !!sym(observers), id = "Any-ASCII"))
 
-        # make two words from dot separated strings
+        # lowercase
+        p %<>% mutate(!!observers := stringi::stri_trans_general(str = !!sym(observers), id = "Any-Lower"))
+
+        # make two words from selected character (not only dot TODO) separated strings
         p %<>% mutate(!!observers := str_replace(!!sym(observers), "\\.", "\\. "))
-        # trim spaces
-        p %<>% mutate(!!observers := trimws(!!sym(observers)))
 
-        # mark single word observers
+        # trim spaces and internal multi spaces
+        p %<>% mutate(!!observers := stringr::str_squish(!!sym(observers)))
+
+        # replace non alphanumeric+space chars - možnost zadat přímo string do reguláru!!!
+        p %<>% mutate(!!observers := str_replace_all(df$name.trans, "[^[:alnum:]| ]", "_"))
+
+
+        # mark single word observers (nesmysl, pokud jsou tam unikátní stringy, třeba přezdívky)
         p %<>% mutate(!!paste0(observers, "_single") := ifelse(stringi::stri_count_fixed(!!sym(observers), " ") == 0, 1, 0))
-
-        # remove single word observers
         if (observersRemoveSingleName) {
+            # remove single word observers
             p %<>% filter(!!sym(paste0(observers, "_single")) == 0)
         }
 
         if (!is.na(badWordsObservers)) {
             # mark bad words observers
             p %<>% mutate(!!paste0(observers, badWords) := ifelse(str_detect(!!sym(observers), paste(badWordsObservers, collapse = "|")), 1, 0))
+            p %<>% filter(!!sym(paste0(observers, badWords)) == 0)
         } else {
             p %<>% mutate(!!paste0(observers, badWords) := 0)
         }
-        p %<>% filter(!!sym(paste0(observers, badWords)) == 0)
     }
 
     if (!is.na(badWordsSpecies)) {
         # mark bad words species
-        p %<>% mutate(!!paste0(species, badWords) := ifelse(str_detect(!!sym(species), paste(badWordsSpecies, collapse = "|")), 1, 0))
+        p %<>% mutate(!!paste0(prefix, species, badWords) := ifelse(str_detect(!!sym(species), paste(badWordsSpecies, collapse = "|")), 1, 0))
+        p %<>% filter(!!sym(paste0(prefix, species, badWords)) == 0)
     } else {
         p %<>% mutate(!!paste0(species, badWords) := 0)
     }
 
-    p %<>% filter(!!sym(paste0(species, badWords)) == 0)
+
+
+    #  dát možnost volby nechat výstup dofiltrovaný, nebo si ho manuálně ručně dofiltrovat sám až potom
+    # - ale nezahrnovat je do výpočtu statistik!!!
+
+    # nedělal jsem pro celkové TGOB zde normalizaci per pixel, přestože u TS a TO jsem ji udělal!! - jo, ale statistiky jsem zatím dělal jen na d TO a TS, je to OK...
+    # když ale zadám raster, tak ty výpočty chci mít normalizované!!! Ale původní dataset bych neměl měnit co do počtu řádku, jen nevhodné bu%nky dostanou 0
+    # prs pixel cellNumber ale můžu udělat vždy až dodatečně níže v kódu, není nutné mít tady
+
+    # prefixovat i cellnumber
 
     if (is(r, "RasterLayer")) {
         #
         # per species, (observer) and pixel
         #
-
+        cellNumber <- paste0(prefix, "cellNumber")
         v.temp <- raster::extract(r, sf::st_coordinates(p), cellnumbers = TRUE)
-        p %<>% tibble::add_column(cellNumber = v.temp[, 1])
-        p %<>% filter(!is.na(cellNumber))
+        p %<>% mutate(!!cellNumber := v.temp[, 1])
+
+        occs.na <- nrow(p %>% filter(is.na(!!sym(cellNumber))))
+
+        if (occs.na > 0) {
+            message(paste0(occs.na, " occurences removed, no cellnumbers (raster::extract)"))
+            p %<>% filter(!is.na(!!sym(cellNumber)))
+        }
 
         # TO
         if (!is.na(observers)) {
             # per observer stats
-            p.temp.o <- as_tibble(p %>% dplyr::select(!!sym(observers), cellNumber, uid, -geometry)) %>%
+            p.temp.o <- as_tibble(p %>% dplyr::select(!!sym(observers), !!sym(cellNumber), !!sym(uid), -geometry)) %>%
                 ungroup() %>%
-                group_by(!!sym(observers), cellNumber) %>%
+                group_by(!!sym(observers), !!sym(cellNumber)) %>%
                 slice_head(n = 1)
         }
 
         # TS
         # per species stats
-        p.temp.s <- as_tibble(p %>% dplyr::select(!!sym(species), cellNumber, uid, -geometry)) %>%
+        p.temp.s <- as_tibble(p %>% dplyr::select(!!sym(species), !!sym(cellNumber), !!sym(uid), -geometry)) %>%
             ungroup() %>%
-            group_by(!!sym(species), cellNumber) %>%
+            group_by(!!sym(species), !!sym(cellNumber)) %>%
             slice_head(n = 1)
     } else {
         #
@@ -117,13 +149,13 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
         # TO
         if (!is.na(observers)) {
             # per observer stats
-            p.temp.o <- as_tibble(p %>% dplyr::select(!!sym(observers), uid, -geometry)) %>%
+            p.temp.o <- as_tibble(p %>% dplyr::select(!!sym(observers), !!sym(uid), -geometry)) %>%
                 group_by(!!sym(observers))
         }
 
         # TS
         # per species stats
-        p.temp.s <- as_tibble(p %>% dplyr::select(!!sym(species), uid, -geometry)) %>%
+        p.temp.s <- as_tibble(p %>% dplyr::select(!!sym(species), !!sym(uid), -geometry)) %>%
             group_by(!!sym(species))
     }
 
@@ -139,8 +171,8 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
             ungroup() %>%
             group_by(!!sym(observers)) %>%
             summarise(
-                uid.n = n_distinct(uid),
-                uid.ratio = n_distinct(uid) / uid.total
+                uid.n = n_distinct(as.character(sym(uid))),
+                uid.ratio = n_distinct(as.character(sym(uid))) / uid.total
             ) %>%
             arrange(desc(uid.n))
 
@@ -175,8 +207,8 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
         ungroup() %>%
         group_by(!!sym(species)) %>%
         summarise(
-            uid.n = n_distinct(uid),
-            uid.ratio = n_distinct(uid) / uid.total
+            uid.n = n_distinct(as.character(sym(uid))),
+            uid.ratio = n_distinct(as.character(sym(uid))) / uid.total
         ) %>%
         arrange(desc(uid.n))
 
@@ -230,7 +262,7 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
         sso.temp.stat <- sso.temp %>%
             ungroup() %>%
             group_by(!!sym(species), !!sym(observers)) %>%
-            summarise(uid.n = n_distinct(uid))
+            summarise(uid.n = n_distinct(as.character(sym(uid))))
 
         # sum occs per observers
         sso.temp.stat.observers <- sso.temp.stat %>%
@@ -271,15 +303,15 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
         # TSAO
         # # # # # # # # # #
         if (is(r, "RasterLayer")) {
-            ss.total <- length(unique(p.t.sp$cellNumber))
+            ss.total <- length(unique(p.t.sp[[cellNumber]]))
 
             p.TSAO.stat <- p.temp.s %>%
                 ungroup() %>%
                 group_by(!!sym(species)) %>%
-                filter(cellNumber %in% unique(p.t.sp$cellNumber)) %>%
+                filter(!!sym(cellNumber) %in% unique(p.t.sp[[cellNumber]])) %>%
                 summarise(
-                    cells.shared = n_distinct(cellNumber),
-                    cells.shared.ratio = n_distinct(cellNumber) / ss.total
+                    cells.shared = n_distinct(as.character(sym(cellNumber))),
+                    cells.shared.ratio = n_distinct(as.character(sym(cellNumber))) / ss.total
                 ) %>%
                 arrange(desc(cells.shared))
 
