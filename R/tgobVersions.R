@@ -129,17 +129,17 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
         # TO
         if (!is.na(observers)) {
             # per observer stats
-            p.temp.o <- as_tibble(p %>% dplyr::select(!!sym(observers), !!sym(cellNumber), !!sym(uid), -geometry)) %>%
+            p.temp.o <- as_tibble(p %>% dplyr::select(!!sym(observers), !!sym(species), !!sym(cellNumber), !!sym(uid), -geometry)) %>%
                 ungroup() %>%
-                group_by(!!sym(observers), !!sym(cellNumber)) %>%
+                group_by(!!sym(observers), !!sym(cellNumber), !!sym(species)) %>% # původně bez species, pak to bylo ale jen z hlediska prostorové aktivity, ale bez počtu sesbíraných druhů
                 slice_head(n = 1)
         }
 
         # TS
         # per species stats
-        p.temp.s <- as_tibble(p %>% dplyr::select(!!sym(species), !!sym(cellNumber), !!sym(uid), -geometry)) %>%
+        p.temp.s <- as_tibble(p %>% dplyr::select(!!sym(species), !!sym(cellNumber), !!sym(observers), !!sym(uid), -geometry)) %>%
             ungroup() %>%
-            group_by(!!sym(species), !!sym(cellNumber)) %>%
+            group_by(!!sym(species), !!sym(cellNumber), !!sym(observers)) %>% # původně bez observers, pak to bylo ale jen z hlediska prostorového rozšíření, ale bez počtu sesbíraných druhů
             slice_head(n = 1)
     } else {
         #
@@ -171,14 +171,14 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
             ungroup() %>%
             group_by(!!sym(observers)) %>%
             summarise(
-                uid.n = n_distinct(as.character(sym(uid))),
-                uid.ratio = n_distinct(as.character(sym(uid))) / uid.total
+                uid.n = n_distinct(!!sym(uid)),
+                uid.ratio = n_distinct(!!sym(uid)) / uid.total
             ) %>%
             arrange(desc(uid.n))
 
         if (TO.n >= 1) {
             # exact number of TOP observers
-            TO.total <- p.temp.o %>% n_distinct(as.character(sym(observers)))
+            TO.total <- p.temp.o %>% n_distinct(!!sym(observers))
             if (TO.n > TO.total) {
                 stop(paste0("Can't get more TOP observers than total number: ", TO.total))
             } else {
@@ -195,11 +195,11 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
         # mark top X observers
         p %<>% mutate(!!paste0(prefix, "TO") := ifelse(!!sym(observers) %in% p.TO.unique, 1, 0))
 
-### # wTO
-return(p.TO.stat)
-stop()
-p %<>% mutate(!!paste0(prefix, "wTO") := ifelse(!!sym(observers) %in% p.TO.unique, 1, 0))
-
+        ### # wTO
+        p.TO.stat.w <- p.TO.stat %>%
+            dplyr::select(!!sym(observers), uid.ratio) %>%
+            rename(wTO = "uid.ratio")
+        p %<>% left_join(p.TO.stat.w, by = observers)
     }
 
     # # # # # # # # # #
@@ -213,14 +213,14 @@ p %<>% mutate(!!paste0(prefix, "wTO") := ifelse(!!sym(observers) %in% p.TO.uniqu
         ungroup() %>%
         group_by(!!sym(species)) %>%
         summarise(
-            uid.n = n_distinct(as.character(sym(uid))),
-            uid.ratio = n_distinct(as.character(sym(uid))) / uid.total
+            uid.n = n_distinct(!!sym(uid)),
+            uid.ratio = n_distinct(!!sym(uid)) / uid.total
         ) %>%
         arrange(desc(uid.n))
 
     if (TS.n >= 1) {
         # exact number of TOP species
-        TS.total <- p.temp.s %>% n_distinct(as.character(sym(species)))
+        TS.total <- p.temp.s %>% n_distinct(!!sym(species))
         if (TS.n > TS.total) {
             stop(paste0("Can't get more TOP species than total number: ", TS.total))
         } else {
@@ -236,6 +236,12 @@ p %<>% mutate(!!paste0(prefix, "wTO") := ifelse(!!sym(observers) %in% p.TO.uniqu
     p.TS.unique <- unique(as.vector(unlist(p.TS.unique %>% dplyr::select(!!sym(species)))))
     # mark top X species
     p %<>% mutate(!!paste0(prefix, "TS") := ifelse(!!sym(species) %in% p.TS.unique, 1, 0))
+
+    ### # wTS
+    p.TS.stat.w <- p.TS.stat %>%
+        dplyr::select(!!sym(species), uid.ratio) %>%
+        rename(wTS = "uid.ratio")
+    p %<>% left_join(p.TS.stat.w, by = species)
 
     # # # # # # # # # #
     # sso - add species/version columns (0/1)
@@ -268,7 +274,7 @@ p %<>% mutate(!!paste0(prefix, "wTO") := ifelse(!!sym(observers) %in% p.TO.uniqu
         sso.temp.stat <- sso.temp %>%
             ungroup() %>%
             group_by(!!sym(species), !!sym(observers)) %>%
-            summarise(uid.n = n_distinct(as.character(sym(uid))))
+            summarise(uid.n = n_distinct(!!sym(uid)))
 
         # sum occs per observers
         sso.temp.stat.observers <- sso.temp.stat %>%
@@ -316,8 +322,8 @@ p %<>% mutate(!!paste0(prefix, "wTO") := ifelse(!!sym(observers) %in% p.TO.uniqu
                 group_by(!!sym(species)) %>%
                 filter(!!sym(cellNumber) %in% unique(p.t.sp[[cellNumber]])) %>%
                 summarise(
-                    cells.shared = n_distinct(as.character(sym(cellNumber))),
-                    cells.shared.ratio = n_distinct(as.character(sym(cellNumber))) / ss.total
+                    cells.shared = n_distinct(!!sym(cellNumber)),
+                    cells.shared.ratio = n_distinct(!!sym(cellNumber)) / ss.total
                 ) %>%
                 arrange(desc(cells.shared))
 
