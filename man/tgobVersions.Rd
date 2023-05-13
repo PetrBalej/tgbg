@@ -16,7 +16,7 @@ tgobVersions(
   prefix = "nc_",
   observersRemoveSingleName = TRUE,
   observersRemoveSingleOccurrence = 0,
-  quantileObserversThreshold = 0.01,
+  quantileObserversThreshold = 0,
   badWordsSpecies = NA,
   badWordsObservers = NA,
   crs = NA
