@@ -411,12 +411,12 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
                         if (nrow(p.TOAO.stat.temp %>% filter(cells.shared > toao.quantile)) >= 4) {
                             p.TOAO.unique <- p.TOAO.stat.temp %>% filter(cells.shared > toao.quantile)
                         } else {
-                            message(paste0("Less than 3 ovelaping species with >", TSAO.min, " overlap and quantile ", TSAO.n, ". Left 3 top species"))
+                            message(paste0("Less than 3 ovelaping observers with >", TSAO.min, " overlap and quantile ", TSAO.n, ". Left 3 top species"))
                             TOAO.min.species <- c(TOAO.min.species, sp)
                             p.TOAO.unique <- p.TOAO.stat %>% slice_head(n = 4)
                         }
                     } else {
-                        message(paste0("Less than 3 ovelaping species with >", TSAO.min, " overlap. Left 3 top species"))
+                        message(paste0("Less than 3 ovelaping observers with >", TSAO.min, " overlap. Left 3 top species"))
                         TOAO.min.species <- c(TOAO.min.species, sp)
                         p.TOAO.unique <- p.TOAO.stat %>% slice_head(n = 4)
                     }
