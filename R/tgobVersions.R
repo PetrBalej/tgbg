@@ -24,6 +24,12 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
 
     # not change original data, just add new prefixed columns with weights or binary sign
 
+    minMaxNormalize <- function(v) {
+        v.min <- min(v)
+        v.max <- max(v)
+        return((v - v.min) / (v.max - v.min))
+    }
+
     badWords <- "_badWords"
     uid <- paste0(prefix, "uid")
 
@@ -199,6 +205,9 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
             mutate(uid.ratio = uid.ratio^2) %>%
             dplyr::select(!!sym(observers), uid.ratio) %>%
             rename(!!paste0(prefix, "TO.w") := "uid.ratio")
+
+        p.TO.stat.w[[paste0(prefix, "TO.w")]] <- minMaxNormalize(p.TO.stat.w[[paste0(prefix, "TO.w")]])
+
         p %<>% left_join(p.TO.stat.w, by = observers)
     }
 
@@ -242,6 +251,9 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
         mutate(uid.ratio = uid.ratio^2) %>%
         dplyr::select(!!sym(species), uid.ratio) %>%
         rename(!!paste0(prefix, "TS.w") := "uid.ratio")
+
+    p.TS.stat.w[[paste0(prefix, "TS.w")]] <- minMaxNormalize(p.TS.stat.w[[paste0(prefix, "TS.w")]])
+
     p %<>% left_join(p.TS.stat.w, by = species)
 
     # # # # # # # # # #
@@ -374,6 +386,9 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
                 mutate(cells.shared.ratio = cells.shared.ratio^2) %>%
                 dplyr::select(!!sym(species), cells.shared.ratio) %>%
                 rename(!!paste0(prefix, "TS.AO.w", "_", sp) := "cells.shared.ratio")
+
+            p.TSAO.stat.w[[paste0(prefix, "TS.AO.w", "_", sp)]] <- minMaxNormalize(p.TSAO.stat.w[[paste0(prefix, "TS.AO.w", "_", sp)]])
+
             p %<>% left_join(p.TSAO.stat.w, by = species)
         }
 
@@ -437,6 +452,9 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
                 mutate(cells.shared.ratio = cells.shared.ratio^2) %>%
                 dplyr::select(!!sym(observers), cells.shared.ratio) %>%
                 rename(!!paste0(prefix, "TO.AO.w", "_", sp) := "cells.shared.ratio")
+
+            p.TOAO.stat.w[[paste0(prefix, "TO.AO.w", "_", sp)]] <- minMaxNormalize(p.TOAO.stat.w[[paste0(prefix, "TO.AO.w", "_", sp)]])
+
             p %<>% left_join(p.TOAO.stat.w, by = observers)
         }
     }
