@@ -22,6 +22,7 @@ Imports:
     tidyr,
     tibble,
     stringi,
+    stringr,
     rlang,
     sp,
     sf
