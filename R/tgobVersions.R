@@ -109,8 +109,7 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
     # když ale zadám raster, tak ty výpočty chci mít normalizované!!! Ale původní dataset bych neměl měnit co do počtu řádku, jen nevhodné bu%nky dostanou 0
     # prs pixel cellNumber ale můžu udělat vždy až dodatečně níže v kódu, není nutné mít tady
 
-    # prefixovat i cellnumber
-
+    # místo rasteru můžu použít i buffer čistě pro statistíky nad presencemi - pak budu ale budu muset řešit prostorový překryv přímo prostorovou funkcí - ne jen pomocí cellNumber
     if (is(r, "RasterLayer")) {
         #
         # per species, (observer) and pixel
@@ -197,8 +196,9 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
 
         ### # wTO
         p.TO.stat.w <- p.TO.stat %>%
+            mutate(uid.ratio = uid.ratio^2) %>%
             dplyr::select(!!sym(observers), uid.ratio) %>%
-            rename(wTO = "uid.ratio")
+            rename(!!paste0(prefix, "wTO") := "uid.ratio")
         p %<>% left_join(p.TO.stat.w, by = observers)
     }
 
@@ -239,8 +239,9 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
 
     ### # wTS
     p.TS.stat.w <- p.TS.stat %>%
+        mutate(uid.ratio = uid.ratio^2) %>%
         dplyr::select(!!sym(species), uid.ratio) %>%
-        rename(wTS = "uid.ratio")
+        rename(!!paste0(prefix, "wTS") := "uid.ratio")
     p %<>% left_join(p.TS.stat.w, by = species)
 
     # # # # # # # # # #
@@ -253,7 +254,9 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
     # sso versions
     p.t <- as_tibble(p) %>% dplyr::select(-geometry)
     TSAO.min.species <- c()
+    TOAO.min.species <- c()
     TSAO.top <- list()
+    TOAO.top <- list()
 
     # species
     for (sp in species.unique) {
@@ -364,6 +367,76 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
 
             # mark top X  AO species
             p %<>% mutate(!!paste0(prefix, "TSAO", "_", sp) := ifelse(!!sym(species) %in% p.TSAO.unique, 1, 0))
+
+            ### # wTSAO
+            p.TSAO.stat.w <- p.TSAO.stat %>%
+                mutate(cells.shared.ratio = cells.shared.ratio^2) %>%
+                dplyr::select(!!sym(species), cells.shared.ratio) %>%
+                rename(!!paste0(prefix, "wTSAO", "_", sp) := "cells.shared.ratio")
+            p %<>% left_join(p.TSAO.stat.w, by = species)
+        }
+
+        # # # # # # # # # #
+        # TOAO
+        # # # # # # # # # #
+        if (is(r, "RasterLayer")) {
+            ### v názvech proměnných mám species místo observers (významově hledám nálezy pozorovbatelů, ne druhů...)
+            ss.total <- length(unique(p.t.sp[[cellNumber]]))
+
+            p.TOAO.stat <- p.temp.o %>%
+                ungroup() %>%
+                group_by(!!sym(observers)) %>%
+                filter(!!sym(cellNumber) %in% unique(p.t.sp[[cellNumber]])) %>%
+                summarise(
+                    cells.shared = n_distinct(!!sym(cellNumber)),
+                    cells.shared.ratio = n_distinct(!!sym(cellNumber)) / ss.total
+                ) %>%
+                arrange(desc(cells.shared))
+
+            # remove focus observers (100 % overlap...)
+            # p.TOAO.stat %<>% filter(!!sym(observers) != sp)
+
+            if (nrow(p.TOAO.stat) > 0) {
+                if (TSAO.n >= 1) {
+                    # exact number of TOP species
+                    p.TOAO.unique <- p.TOAO.stat %>% slice_head(n = TSAO.n)
+                } else {
+                    if (nrow(p.TOAO.stat %>% filter(cells.shared.ratio > TSAO.min)) >= 4) {
+                        # left only >50 % overlaping species with more than 3 species
+                        p.TOAO.stat.temp <- p.TOAO.stat %>% filter(cells.shared.ratio > TSAO.min)
+                        toao.quantile <- NA
+                        toao.quantile <- unname(stats::quantile(p.TOAO.stat.temp$cells.shared, probs = TSAO.n, na.rm = TRUE))
+
+                        if (nrow(p.TOAO.stat.temp %>% filter(cells.shared > toao.quantile)) >= 4) {
+                            p.TOAO.unique <- p.TOAO.stat.temp %>% filter(cells.shared > toao.quantile)
+                        } else {
+                            message(paste0("Less than 3 ovelaping species with >", TSAO.min, " overlap and quantile ", TSAO.n, ". Left 3 top species"))
+                            TOAO.min.species <- c(TOAO.min.species, sp)
+                            p.TOAO.unique <- p.TOAO.stat %>% slice_head(n = 4)
+                        }
+                    } else {
+                        message(paste0("Less than 3 ovelaping species with >", TSAO.min, " overlap. Left 3 top species"))
+                        TOAO.min.species <- c(TOAO.min.species, sp)
+                        p.TOAO.unique <- p.TOAO.stat %>% slice_head(n = 4)
+                    }
+                    TOAO.top[[sp]] <- p.TOAO.unique
+                }
+            } else {
+                message("No overlaping species...")
+                next
+            }
+
+            p.TOAO.unique <- unique(as.vector(unlist(p.TOAO.unique %>% dplyr::select(!!sym(observers)))))
+
+            # mark top X  AO species
+            p %<>% mutate(!!paste0(prefix, "TOAO", "_", sp) := ifelse(!!sym(observers) %in% p.TOAO.unique, 1, 0))
+
+            ### # wTOAO
+            p.TOAO.stat.w <- p.TOAO.stat %>%
+                mutate(cells.shared.ratio = cells.shared.ratio^2) %>%
+                dplyr::select(!!sym(observers), cells.shared.ratio) %>%
+                rename(!!paste0(prefix, "wTOAO", "_", sp) := "cells.shared.ratio")
+            p %<>% left_join(p.TOAO.stat.w, by = observers)
         }
     }
 
@@ -372,7 +445,8 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
         "report" = list(
             "TS" = p.TS.stat, "TS.n" = TS.n,
             "TO" = p.TO.stat, "TO.n" = TO.n,
-            "TSAO" = TSAO.top, "TSAO.n" = TSAO.n, "TSAO.min.species" = TSAO.min.species
+            "TSAO" = TSAO.top, "TSAO.n" = TSAO.n, "TOAO" = TOAO.top,
+            "TSAO.min.species" = TSAO.min.species, "TOAO.min.species" = TOAO.min.species
         )
     ))
 }
