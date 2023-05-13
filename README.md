@@ -10,7 +10,7 @@
 5) **.sso**\*: *Shared Species-Observers* subsample of previous versions
 6) **.w**\*: weighted subsample of previous versions
 
-\* In order to standardise the intensity of sampling effort with respect to individual species, we propose two new concepts: 
+\* In order to standardise the intensity of sampling effort with respect to individual species, we propose three new concepts: 
 
 ad 4) Focus species specific modification of 3). Select for TOP X species by Area Overlap (most overlaping occupied cells with focus species). We assume that it link (more observed) spatially related co-observed species with appropriate sampling effort intensity
 
