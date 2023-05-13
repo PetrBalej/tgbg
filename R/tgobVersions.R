@@ -20,7 +20,7 @@
 #'
 #' @export
 
-tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 0.2, TO.n = 0.2, TSAO.n = 0.8, TSAO.min = 0.5, prefix = "nc_", observersRemoveSingleName = TRUE, observersRemoveSingleOccurrence = 0, quantileObserversThreshold = 0.01, badWordsSpecies = NA, badWordsObservers = NA, crs = NA) {
+tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 0.2, TO.n = 0.2, TSAO.n = 0.8, TSAO.min = 0.5, prefix = "nc_", observersRemoveSingleName = TRUE, observersRemoveSingleOccurrence = 0, quantileObserversThreshold = 0, badWordsSpecies = NA, badWordsObservers = NA, crs = NA) {
 
     # not change original data, just add new prefixed columns with weights or binary sign
 
@@ -198,7 +198,7 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
         p.TO.stat.w <- p.TO.stat %>%
             mutate(uid.ratio = uid.ratio^2) %>%
             dplyr::select(!!sym(observers), uid.ratio) %>%
-            rename(!!paste0(prefix, "wTO") := "uid.ratio")
+            rename(!!paste0(prefix, "TO.w") := "uid.ratio")
         p %<>% left_join(p.TO.stat.w, by = observers)
     }
 
@@ -241,7 +241,7 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
     p.TS.stat.w <- p.TS.stat %>%
         mutate(uid.ratio = uid.ratio^2) %>%
         dplyr::select(!!sym(species), uid.ratio) %>%
-        rename(!!paste0(prefix, "wTS") := "uid.ratio")
+        rename(!!paste0(prefix, "TS.w") := "uid.ratio")
     p %<>% left_join(p.TS.stat.w, by = species)
 
     # # # # # # # # # #
@@ -293,6 +293,7 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
             summarise(species.n = sum(uid.n))
 
         # ratio (selected species occs per total occs) per observers
+        # počet (per pixel) pozorování pro daného pozorovatele: species.n (focus druhu) / observers.n (celkem všech druhů) = ratio
         sso.temp.ratio <- sso.temp.stat.observers %>%
             left_join(sso.temp.stat.species, by = as.character(sym(observers))) %>%
             mutate(ratio = species.n / observers.n)
@@ -366,13 +367,13 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
             p.TSAO.unique <- unique(as.vector(unlist(p.TSAO.unique %>% dplyr::select(!!sym(species)))))
 
             # mark top X  AO species
-            p %<>% mutate(!!paste0(prefix, "TSAO", "_", sp) := ifelse(!!sym(species) %in% p.TSAO.unique, 1, 0))
+            p %<>% mutate(!!paste0(prefix, "TS.AO", "_", sp) := ifelse(!!sym(species) %in% p.TSAO.unique, 1, 0))
 
             ### # wTSAO
             p.TSAO.stat.w <- p.TSAO.stat %>%
                 mutate(cells.shared.ratio = cells.shared.ratio^2) %>%
                 dplyr::select(!!sym(species), cells.shared.ratio) %>%
-                rename(!!paste0(prefix, "wTSAO", "_", sp) := "cells.shared.ratio")
+                rename(!!paste0(prefix, "TS.AO.w", "_", sp) := "cells.shared.ratio")
             p %<>% left_join(p.TSAO.stat.w, by = species)
         }
 
@@ -429,13 +430,13 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
             p.TOAO.unique <- unique(as.vector(unlist(p.TOAO.unique %>% dplyr::select(!!sym(observers)))))
 
             # mark top X  AO species
-            p %<>% mutate(!!paste0(prefix, "TOAO", "_", sp) := ifelse(!!sym(observers) %in% p.TOAO.unique, 1, 0))
+            p %<>% mutate(!!paste0(prefix, "TO.AO", "_", sp) := ifelse(!!sym(observers) %in% p.TOAO.unique, 1, 0))
 
             ### # wTOAO
             p.TOAO.stat.w <- p.TOAO.stat %>%
                 mutate(cells.shared.ratio = cells.shared.ratio^2) %>%
                 dplyr::select(!!sym(observers), cells.shared.ratio) %>%
-                rename(!!paste0(prefix, "wTOAO", "_", sp) := "cells.shared.ratio")
+                rename(!!paste0(prefix, "TO.AO.w", "_", sp) := "cells.shared.ratio")
             p %<>% left_join(p.TOAO.stat.w, by = observers)
         }
     }
