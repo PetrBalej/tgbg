@@ -327,6 +327,17 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
 
         p %<>% mutate(!!paste0(prefix, "sso", "_", sp) := ifelse(!!sym(observers) %in% observers.unique, 1, 0))
 
+        
+        ### # wsso
+        sso.temp.ratio.w <- sso.temp.ratio %>%
+          dplyr::select(!!sym(observers), ratio) %>%
+          rename(!!paste0(prefix, "TGOB.sso.w", "_", sp) := "ratio")
+        
+        sso.temp.ratio.w[[paste0(prefix, "TGOB.sso.w", "_", sp)]] <- minMaxNormalize(sso.temp.ratio.w[[paste0(prefix, "TGOB.sso.w", "_", sp)]])
+        
+        p %<>% left_join(sso.temp.ratio.w, by = observers)
+        
+        
         # # # # # # # # # #
         # TSAO
         # # # # # # # # # #
