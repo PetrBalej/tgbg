@@ -36,6 +36,13 @@ bg <- function(p, r, n = 0.1, sigma = c(0.1, 1, 2, 3), weights = NULL, output = 
         crs <- raster::crs(r)
     }
 
+    # # ideally to ppp(..., window = pr.owin), but not possible to pass for unprojected coords like WGS84...
+    # # TODO: enable on projected CRS, disable (trycatch error as.owin + and warning message) on unprojected
+    # prr <- r
+    # prr[!is.na(prr)] <- 1
+    # pr <- rasterToPolygons(prr, dissolve = TRUE)
+    # pr.owin <- as.owin(st_as_sf(pr))
+
     ext <- raster::extent(r)
     ow <- owin(xrange = c(ext@xmin, ext@xmax), yrange = c(ext@ymin, ext@ymax))
 

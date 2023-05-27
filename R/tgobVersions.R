@@ -327,17 +327,43 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
 
         p %<>% mutate(!!paste0(prefix, "sso", "_", sp) := ifelse(!!sym(observers) %in% observers.unique, 1, 0))
 
-        
+
         ### # wsso
         sso.temp.ratio.w <- sso.temp.ratio %>%
-          dplyr::select(!!sym(observers), ratio) %>%
-          rename(!!paste0(prefix, "TGOB.sso.w", "_", sp) := "ratio")
-        
+            dplyr::select(!!sym(observers), ratio) %>%
+            rename(!!paste0(prefix, "TGOB.sso.w", "_", sp) := "ratio")
+
         sso.temp.ratio.w[[paste0(prefix, "TGOB.sso.w", "_", sp)]] <- minMaxNormalize(sso.temp.ratio.w[[paste0(prefix, "TGOB.sso.w", "_", sp)]])
-        
+
         p %<>% left_join(sso.temp.ratio.w, by = observers)
-        
-        
+
+
+        ### # wsso - alts
+
+        sp.w <- sso.temp.ratio
+        sp.w %<>% arrange(ratio)
+        sp.sort <- sort(sp.w$ratio)
+        sp.mean <- mean(sp.w$ratio)
+        sp.median <- median(sp.w$ratio)
+
+        # dpois mean
+        d <- dpois(1:length(sp.sort), lambda = which.min(abs(sp.sort - sp.mean)))
+        sp.w[[paste0(prefix, "TGOB.sso.w.dpois.mean", "_", sp)]] <- round(minMaxNormalize(d), digits = 5)
+
+        # dpois median
+        d <- dpois(1:length(sp.sort), lambda = which.min(abs(sp.sort - sp.median)))
+        sp.w[[paste0(prefix, "TGOB.sso.w.dpois.median", "_", sp)]] <- round(minMaxNormalize(d), digits = 5)
+
+        # dnorm mean
+        n <- dnorm(1:length(sp.sort), mean = which.min(abs(sp.sort - sp.mean)), sd = sd(1:length(sp.sort)))
+        sp.w[[paste0(prefix, "TGOB.sso.w.dnorm.mean", "_", sp)]] <- round(minMaxNormalize(n), digits = 5)
+
+        # dnorm median
+        n <- dnorm(1:length(sp.sort), mean = which.min(abs(sp.sort - sp.median)), sd = sd(1:length(sp.sort)))
+        sp.w[[paste0(prefix, "TGOB.sso.w.dnorm.median", "_", sp)]] <- round(minMaxNormalize(n), digits = 5)
+
+        p %<>% left_join(sp.w[, c(1, 5:8)], by = observers) # TODO get cols by name + autors to join
+
         # # # # # # # # # #
         # TSAO
         # # # # # # # # # #
