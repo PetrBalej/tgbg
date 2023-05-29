@@ -19,7 +19,8 @@ tgobVersions(
   quantileObserversThreshold = 0,
   badWordsSpecies = NA,
   badWordsObservers = NA,
-  crs = NA
+  crs = NA,
+  species.select = NA
 )
 }
 \arguments{
@@ -52,6 +53,8 @@ tgobVersions(
 \item{badWordsObservers}{character vector: if observers name containing unwanted strings, remove such rows}
 
 \item{crs}{integer: Force crs.}
+
+\item{species.select}{character vector: make stats only from selected species}
 }
 \value{
 named list: \emph{p}: sf (POINT/MULTIPOINT): inserted \emph{p} with new (0/1) columns: TO, TS, TSAO ssoX_\emph{species}; \emph{report}: TO+TS+TSAO stats used to threshold selected top O+S

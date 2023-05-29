@@ -15,12 +15,13 @@
 #' @param badWordsSpecies character vector: if species name containing unwanted strings, remove such rows
 #' @param badWordsObservers character vector: if observers name containing unwanted strings, remove such rows
 #' @param crs integer: Force crs.
+#' @param species.select character vector: make stats only from selected species
 #'
 #' @return named list: \emph{p}: sf (POINT/MULTIPOINT): inserted \emph{p} with new (0/1) columns: TO, TS, TSAO ssoX_\emph{species}; \emph{report}: TO+TS+TSAO stats used to threshold selected top O+S
 #'
 #' @export
 
-tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 0.2, TO.n = 0.2, TSAO.n = 0.8, TSAO.min = 0.5, prefix = "nc_", observersRemoveSingleName = TRUE, observersRemoveSingleOccurrence = 0, quantileObserversThreshold = 0, badWordsSpecies = NA, badWordsObservers = NA, crs = NA) {
+tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 0.2, TO.n = 0.2, TSAO.n = 0.8, TSAO.min = 0.5, prefix = "nc_", observersRemoveSingleName = TRUE, observersRemoveSingleOccurrence = 0, quantileObserversThreshold = 0, badWordsSpecies = NA, badWordsObservers = NA, crs = NA, species.select = NA) {
 
     # not change original data, just add new prefixed columns with weights or binary sign
 
@@ -260,8 +261,11 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
     # sso - add species/version columns (0/1)
     # # # # # # # # # #
 
-
-    species.unique <- unique(as.vector(unlist(as_tibble(p) %>% dplyr::select(!!sym(species)))))
+    if (is.na(species.select)) {
+        species.unique <- unique(as.vector(unlist(as_tibble(p) %>% dplyr::select(!!sym(species)))))
+    } else {
+        species.unique <- unique(as.vector(unlist(species.select)))
+    }
 
     # sso versions
     p.t <- as_tibble(p) %>% dplyr::select(-geometry)
