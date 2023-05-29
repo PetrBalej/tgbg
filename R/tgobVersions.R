@@ -261,7 +261,7 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
     # sso - add species/version columns (0/1)
     # # # # # # # # # #
 
-    if (is.na(species.select)) {
+    if (length(species.select) <= 1) {
         species.unique <- unique(as.vector(unlist(as_tibble(p) %>% dplyr::select(!!sym(species)))))
     } else {
         species.unique <- unique(as.vector(unlist(species.select)))
