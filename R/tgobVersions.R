@@ -339,30 +339,42 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
 
 
         ### # wsso - alts
+        sso.temp.ratio[["observers.n.n"]] <- minMaxNormalize(sso.temp.ratio$observers.n)
+        sso.temp.ratio[["species.n.n"]] <- minMaxNormalize(sso.temp.ratio$species.n)
+        sso.temp.ratio[[paste0(prefix, "TGOB.sso.w.3", "_", sp)]] <- minMaxNormalize(1 / 3 * sso.temp.ratio$ratio + 1 / 3 * sso.temp.ratio$observers.n.n + 1 / 3 * sso.temp.ratio$species.n.n)
 
         sp.w <- sso.temp.ratio
         sp.w %<>% arrange(ratio)
         sp.sort <- sort(sp.w$ratio)
         sp.mean <- mean(sp.w$ratio)
         sp.median <- median(sp.w$ratio)
+        sp.sd <- sd(sp.w$ratio)
 
-        # dpois mean
-        d <- dpois(1:length(sp.sort), lambda = which.min(abs(sp.sort - sp.mean)))
-        sp.w[[paste0(prefix, "TGOB.sso.w.dpois.mean", "_", sp)]] <- round(minMaxNormalize(d), digits = 5)
-
-        # dpois median
-        d <- dpois(1:length(sp.sort), lambda = which.min(abs(sp.sort - sp.median)))
-        sp.w[[paste0(prefix, "TGOB.sso.w.dpois.median", "_", sp)]] <- round(minMaxNormalize(d), digits = 5)
-
-        # dnorm mean
-        n <- dnorm(1:length(sp.sort), mean = which.min(abs(sp.sort - sp.mean)), sd = sd(1:length(sp.sort)))
-        sp.w[[paste0(prefix, "TGOB.sso.w.dnorm.mean", "_", sp)]] <- round(minMaxNormalize(n), digits = 5)
-
-        # dnorm median
+        # dnorm1 median
         n <- dnorm(1:length(sp.sort), mean = which.min(abs(sp.sort - sp.median)), sd = sd(1:length(sp.sort)))
-        sp.w[[paste0(prefix, "TGOB.sso.w.dnorm.median", "_", sp)]] <- round(minMaxNormalize(n), digits = 5)
+        sp.w[[paste0(prefix, "TGOB.sso.w.dnorm1.median", "_", sp)]] <- round(minMaxNormalize(n), digits = 5)
+        sp.w[[paste0(prefix, "TGOB.sso.w.3.dnorm1.median", "_", sp)]] <- minMaxNormalize(1 / 3 * sp.w[[paste0(prefix, "TGOB.sso.w.dnorm1.median", "_", sp)]] + 1 / 3 * sp.w$observers.n.n + 1 / 3 * sp.w$species.n.n)
 
-        p %<>% left_join(sp.w[, c(1, 5:8)], by = observers) # TODO get cols by name + autors to join
+
+        # dnorm1 mean
+        n <- dnorm(1:length(sp.sort), mean = which.min(abs(sp.sort - sp.mean)), sd = sd(1:length(sp.sort)))
+        sp.w[[paste0(prefix, "TGOB.sso.w.dnorm1.mean", "_", sp)]] <- round(minMaxNormalize(n), digits = 5)
+        sp.w[[paste0(prefix, "TGOB.sso.w.3.dnorm1.mean", "_", sp)]] <- minMaxNormalize(1 / 3 * sp.w[[paste0(prefix, "TGOB.sso.w.dnorm1.mean", "_", sp)]] + 1 / 3 * sp.w$observers.n.n + 1 / 3 * sp.w$species.n.n)
+
+
+        # dnorm2 median
+        n <- dnorm(sp.sort, mean = sp.median, sd = sp.sd)
+        sp.w[[paste0(prefix, "TGOB.sso.w.dnorm2.median", "_", sp)]] <- round(minMaxNormalize(n), digits = 5)
+
+        sp.w[[paste0(prefix, "TGOB.sso.w.3.dnorm2.median", "_", sp)]] <- minMaxNormalize(1 / 3 * sp.w[[paste0(prefix, "TGOB.sso.w.dnorm2.median", "_", sp)]] + 1 / 3 * sp.w$observers.n.n + 1 / 3 * sp.w$species.n.n)
+
+        # dnorm2 mean
+        n <- dnorm(sp.sort, mean = sp.mean, sd = sp.sd)
+        sp.w[[paste0(prefix, "TGOB.sso.w.dnorm2.mean", "_", sp)]] <- round(minMaxNormalize(n), digits = 5)
+
+        sp.w[[paste0(prefix, "TGOB.sso.w.3.dnorm2.mean", "_", sp)]] <- minMaxNormalize(1 / 3 * sp.w[[paste0(prefix, "TGOB.sso.w.dnorm2.mean", "_", sp)]] + 1 / 3 * sp.w$observers.n.n + 1 / 3 * sp.w$species.n.n)
+
+        p %<>% left_join(sp.w[, c(1, 7:15)], by = observers) # TODO get cols by name + autors to join
 
         # # # # # # # # # #
         # TSAO
