@@ -357,7 +357,7 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
         sso.temp.ratio[[paste0(prefix, "TGOB.sso.w.3", "_", sp)]] <- minMaxNormalize(1 / 3 * sso.temp.ratio$ratio + 1 / 3 * sso.temp.ratio$observers.n.n + 1 / 3 * sso.temp.ratio$species.n.n)
 #ppp
       sso.temp.ratio[[paste0(prefix, "TGOB.sso.w.3p", "_", sp)]] <- minMaxNormalize(sso.temp.ratio$ratio * sso.temp.ratio$observers.n.n * sso.temp.ratio$species.n.n)
-   
+     sso.temp.ratio[[paste0(prefix, "TGOB.sso.w.3pd", "_", sp)]] <- minMaxNormalize((sso.temp.ratio$ratio / 3) * (sso.temp.ratio$observers.n.n/3) * (sso.temp.ratio$species.n.n/3))
         
         sp.w <- sso.temp.ratio
         sp.w %<>% arrange(ratio)
@@ -395,6 +395,7 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
         sp.w[[paste0(prefix, "TGOB.sso.w2.3", "_", sp)]] <- minMaxNormalize(1 / 3 * sp.w[[paste0(prefix, "TGOB.sso.w2", "_", sp)]] + 1 / 3 * sso.temp.ratio$observers.n.n + 1 / 3 * sso.temp.ratio$species.n.n)
 #ppp
    sp.w[[paste0(prefix, "TGOB.sso.w2.3p", "_", sp)]] <- minMaxNormalize(sp.w[[paste0(prefix, "TGOB.sso.w2", "_", sp)]]  * sso.temp.ratio$observers.n.n  * sso.temp.ratio$species.n.n)
+   sp.w[[paste0(prefix, "TGOB.sso.w2.3pd", "_", sp)]] <- minMaxNormalize((sp.w[[paste0(prefix, "TGOB.sso.w2", "_", sp)]]/3)  * (sso.temp.ratio$observers.n.n/3)  * (sso.temp.ratio$species.n.n/3))
       
         
 
