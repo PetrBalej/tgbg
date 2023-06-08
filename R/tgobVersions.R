@@ -351,6 +351,85 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
         p %<>% left_join(sso.temp.ratio.w, by = observers)
 
 
+        #
+        # per focus species pixels start
+        #
+        # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+        cellNumber.unique <- unique(as.vector(unlist(p.t.sp %>% dplyr::select(!!sym(cellNumber)))))
+
+        sso.temp.selected.cellNumber <- sso.temp %>% filter(!!sym(cellNumber) %in% cellNumber.unique)
+
+        # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+        # count occs per species and observers
+        sso.temp2.stat <- sso.temp.selected.cellNumber %>%
+            ungroup() %>%
+            group_by(!!sym(species), !!sym(observers)) %>%
+            summarise(uid.n = n_distinct(!!sym(uid)))
+
+        # sum occs per observers
+        sso.temp2.stat.observers <- sso.temp2.stat %>%
+            ungroup() %>%
+            group_by(!!sym(observers)) %>%
+            summarise(observers.n = sum(uid.n))
+
+        # sum occs of selected species per observers
+        sso.temp2.stat.species <- sso.temp2.stat %>%
+            ungroup() %>%
+            filter(!!sym(species) == sp) %>%
+            group_by(!!sym(observers)) %>%
+            summarise(species.n = sum(uid.n))
+
+        # ratio (selected species occs per total occs) per observers
+        # počet (per pixel) pozorování pro daného pozorovatele: species.n (focus druhu) / observers.n (celkem všech druhů) = ratio
+        sso.temp2.ratio <- sso.temp2.stat.observers %>%
+            left_join(sso.temp2.stat.species, by = as.character(sym(observers))) %>%
+            mutate(ratio = species.n / observers.n) %>%
+            mutate(ratioFocusSpecies = species.n / length(cellNumber.unique))
+
+        observersRemoveSingleOccurrence <- as.numeric(observersRemoveSingleOccurrence)
+        if (observersRemoveSingleOccurrence > 0) {
+            # remove single
+            sso.temp2.ratio %<>% filter(species.n > observersRemoveSingleOccurrence)
+            observers.unique <- unique(as.vector(unlist(sso.temp2.ratio %>% dplyr::select(!!sym(observers)))))
+        }
+
+        quantileObserversThreshold <- as.numeric(quantileObserversThreshold)
+        if (quantileObserversThreshold > 0 & quantileObserversThreshold < 1) {
+            # remove quantile (and/or singles before)
+            # remove "outlier" observers with suspicious ratio (lower than input quantile)
+            sso.temp2.ratio.quantile <- unname(stats::quantile(sso.temp2.ratio$ratio, probs = quantileObserversThreshold, na.rm = TRUE))
+            observers.unique <- unique(as.vector(unlist(sso.temp2.ratio %>% filter(ratio > sso.temp2.ratio.quantile[1]) %>% dplyr::select(!!sym(observers)))))
+        }
+
+
+        ### # wsso
+        sso.temp2.ratio.w <- sso.temp2.ratio %>%
+            dplyr::select(!!sym(observers), ratio, ratioFocusSpecies) %>%
+            rename(!!paste0(prefix, "TGOB.sso.w3", "_", sp) := "ratio") %>%
+            rename(!!paste0(prefix, "TGOB.sso.w4", "_", sp) := "ratioFocusSpecies")
+
+        sso.temp2.ratio.w[[paste0(prefix, "TGOB.sso.w3", "_", sp)]] <- minMaxNormalize(sso.temp2.ratio.w[[paste0(prefix, "TGOB.sso.w3", "_", sp)]])
+        sso.temp2.ratio.w[[paste0(prefix, "TGOB.sso.w4", "_", sp)]] <- minMaxNormalize(sso.temp2.ratio.w[[paste0(prefix, "TGOB.sso.w4", "_", sp)]])
+        sso.temp2.ratio.w[[paste0(prefix, "TGOB.sso.w5", "_", sp)]] <- sso.temp2.ratio.w[[paste0(prefix, "TGOB.sso.w4", "_", sp)]] * sso.temp2.ratio.w[[paste0(prefix, "TGOB.sso.w3", "_", sp)]]
+
+        p %<>% left_join(sso.temp2.ratio.w, by = observers)
+
+
+        #
+        # per focus species pixels end
+        #
+
+
+        #
+        # dopočty
+        #
+        p %<>% mutate(!!paste0(prefix, "TGOB.sso.w6", "_", sp) := !!sym(paste0(prefix, "TGOB.sso.w", "_", sp)) * !!sym(paste0(prefix, "TGOB.sso.w4", "_", sp)))
+        p %<>% mutate(!!paste0(prefix, "TGOB.sso.w7", "_", sp) := !!sym(paste0(prefix, "TGOB.sso.w", "_", sp)) * !!sym(paste0(prefix, "TGOB.sso.w3", "_", sp)))
+        #
+        # dopočty END
+        #
+
         ### # wsso - alts
         sso.temp.ratio[["observers.n.n"]] <- minMaxNormalize(sso.temp.ratio$observers.n)
         sso.temp.ratio[["species.n.n"]] <- minMaxNormalize(sso.temp.ratio$species.n)
