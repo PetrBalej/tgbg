@@ -52,7 +52,7 @@ sample <- function(rp, n = 0.1, prob = FALSE, crs = NA) {
     inds <- base::sample(1:total,
         size = proportion,
         prob = probs,
-        replace = FALSE
+        replace = TRUE
     )
     bg.temp <- background.points[inds, 1:2]
     return(bg.temp %>% sf::st_as_sf(coords = c("x", "y"), crs = crs))

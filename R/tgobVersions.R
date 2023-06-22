@@ -31,6 +31,31 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
         return((v - v.min) / (v.max - v.min))
     }
 
+    minMaxNormalize2 <- function(v) {
+        v.min <- min(v)
+        v.max <- max(v)
+        r <- (v - v.min) / (v.max - v.min)
+        # nechci nuly, nahradit polovinou nejnižší hodnoty
+        r.s <- sort(unique(r))
+        lowest <- r.s[2] / 2
+        r[r.s[1] == r] <- lowest
+        return(r)
+    }
+
+
+    minMaxNormalize3 <- function(v) {
+        v.min <- min(v)
+        v.max <- max(v)
+        r <- (v - v.min) / (v.max - v.min)
+        # nechci nuly, nahradit polovinou nejnižší hodnoty
+        r.s <- sort(unique(r))
+        lowest <- r.s[2] / 2
+        r[r.s[1] == r] <- lowest
+        outliers <- boxplot.stats(na.omit(r))$out
+        r[r %in% outliers] <- min(outliers) / 2 # TODO přiřadit IQR*1.5  hranici
+        return(r)
+    }
+
     badWords <- "_badWords"
     uid <- paste0(prefix, "uid")
 
@@ -409,9 +434,9 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
             rename(!!paste0(prefix, "TGOB.sso.w3", "_", sp) := "ratio") %>%
             rename(!!paste0(prefix, "TGOB.sso.w4", "_", sp) := "ratioFocusSpecies")
 
-        sso.temp2.ratio.w[[paste0(prefix, "TGOB.sso.w3", "_", sp)]] <- minMaxNormalize(sso.temp2.ratio.w[[paste0(prefix, "TGOB.sso.w3", "_", sp)]])
-        sso.temp2.ratio.w[[paste0(prefix, "TGOB.sso.w4", "_", sp)]] <- minMaxNormalize(sso.temp2.ratio.w[[paste0(prefix, "TGOB.sso.w4", "_", sp)]])
-        sso.temp2.ratio.w[[paste0(prefix, "TGOB.sso.w5", "_", sp)]] <- sso.temp2.ratio.w[[paste0(prefix, "TGOB.sso.w4", "_", sp)]] * sso.temp2.ratio.w[[paste0(prefix, "TGOB.sso.w3", "_", sp)]]
+        sso.temp2.ratio.w[[paste0(prefix, "TGOB.sso.w3", "_", sp)]] <- minMaxNormalize3(sso.temp2.ratio.w[[paste0(prefix, "TGOB.sso.w3", "_", sp)]])
+        sso.temp2.ratio.w[[paste0(prefix, "TGOB.sso.w4", "_", sp)]] <- minMaxNormalize2(sso.temp2.ratio.w[[paste0(prefix, "TGOB.sso.w4", "_", sp)]])
+        sso.temp2.ratio.w[[paste0(prefix, "TGOB.sso.w5", "_", sp)]] <- minMaxNormalize3(sso.temp2.ratio.w[[paste0(prefix, "TGOB.sso.w4", "_", sp)]] * sso.temp2.ratio.w[[paste0(prefix, "TGOB.sso.w3", "_", sp)]])
 
         p %<>% left_join(sso.temp2.ratio.w, by = observers)
 
@@ -424,227 +449,227 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
         #
         # dopočty
         #
-        p %<>% mutate(!!paste0(prefix, "TGOB.sso.w6", "_", sp) := !!sym(paste0(prefix, "TGOB.sso.w", "_", sp)) * !!sym(paste0(prefix, "TGOB.sso.w4", "_", sp)))
-        p %<>% mutate(!!paste0(prefix, "TGOB.sso.w7", "_", sp) := !!sym(paste0(prefix, "TGOB.sso.w", "_", sp)) * !!sym(paste0(prefix, "TGOB.sso.w3", "_", sp)))
+        # p %<>% mutate(!!paste0(prefix, "TGOB.sso.w6", "_", sp) := !!sym(paste0(prefix, "TGOB.sso.w", "_", sp)) * !!sym(paste0(prefix, "TGOB.sso.w4", "_", sp)))
+        # p %<>% mutate(!!paste0(prefix, "TGOB.sso.w7", "_", sp) := !!sym(paste0(prefix, "TGOB.sso.w", "_", sp)) * !!sym(paste0(prefix, "TGOB.sso.w3", "_", sp)))
         #
         # dopočty END
         #
 
-        ### # wsso - alts
-        sso.temp.ratio[["observers.n.n"]] <- minMaxNormalize(sso.temp.ratio$observers.n)
-        sso.temp.ratio[["species.n.n"]] <- minMaxNormalize(sso.temp.ratio$species.n)
-        sso.temp.ratio[[paste0(prefix, "TGOB.sso.w.3", "_", sp)]] <- minMaxNormalize(1 / 3 * sso.temp.ratio$ratio + 1 / 3 * sso.temp.ratio$observers.n.n + 1 / 3 * sso.temp.ratio$species.n.n)
-        # ppp
-        sso.temp.ratio[[paste0(prefix, "TGOB.sso.w.3p", "_", sp)]] <- minMaxNormalize((sso.temp.ratio$species.n^2) / sso.temp.ratio$observers.n)
+        # ### # wsso - alts
+        # sso.temp.ratio[["observers.n.n"]] <- minMaxNormalize(sso.temp.ratio$observers.n)
+        # sso.temp.ratio[["species.n.n"]] <- minMaxNormalize(sso.temp.ratio$species.n)
+        # sso.temp.ratio[[paste0(prefix, "TGOB.sso.w.3", "_", sp)]] <- minMaxNormalize(1 / 3 * sso.temp.ratio$ratio + 1 / 3 * sso.temp.ratio$observers.n.n + 1 / 3 * sso.temp.ratio$species.n.n)
+        # # ppp
+        # sso.temp.ratio[[paste0(prefix, "TGOB.sso.w.3p", "_", sp)]] <- minMaxNormalize((sso.temp.ratio$species.n^2) / sso.temp.ratio$observers.n)
 
-        sp.w <- sso.temp.ratio
-        sp.w %<>% arrange(ratio)
-        sp.sort <- sort(sp.w$ratio)
-        sp.mean <- mean(sp.w$ratio)
-        sp.median <- median(sp.w$ratio)
-        sp.sd <- sd(sp.w$ratio)
-
-
-        # dnorm2 median
-        n <- dnorm(sp.sort, mean = sp.median, sd = sp.sd)
-        sp.w[[paste0(prefix, "TGOB.sso.w.dnorm2.median", "_", sp)]] <- round(minMaxNormalize(n), digits = 5)
-
-        sp.w[[paste0(prefix, "TGOB.sso.w.3.dnorm2.median", "_", sp)]] <- minMaxNormalize(1 / 3 * sp.w[[paste0(prefix, "TGOB.sso.w.dnorm2.median", "_", sp)]] + 1 / 3 * sp.w$observers.n.n + 1 / 3 * sp.w$species.n.n)
-
-        # dnorm2 mean
-        n <- dnorm(sp.sort, mean = sp.mean, sd = sp.sd)
-        sp.w[[paste0(prefix, "TGOB.sso.w.dnorm2.mean", "_", sp)]] <- round(minMaxNormalize(n), digits = 5)
-
-        sp.w[[paste0(prefix, "TGOB.sso.w.3.dnorm2.mean", "_", sp)]] <- minMaxNormalize(1 / 3 * sp.w[[paste0(prefix, "TGOB.sso.w.dnorm2.mean", "_", sp)]] + 1 / 3 * sp.w$observers.n.n + 1 / 3 * sp.w$species.n.n)
-
-        # overal ideal ratio
-        total.sso <- nrow(sso.temp)
-        total.sso.sp <- nrow(sso.temp %>% filter(!!sym(species) == sp))
-
-        total.ratio <- total.sso.sp / total.sso
-
-        sp.w %<>% mutate(absDiffRatio = 1 - abs(total.ratio - ratio))
-
-        sp.w %<>% mutate(tratio = absDiffRatio^2)
-        sp.w[["tratio"]] <- minMaxNormalize(sp.w[["tratio"]])
-
-        # w2
-        sp.w[[paste0(prefix, "TGOB.sso.w2", "_", sp)]] <- sp.w[["tratio"]]
-        sp.w[[paste0(prefix, "TGOB.sso.w2.3", "_", sp)]] <- minMaxNormalize(1 / 3 * sp.w[[paste0(prefix, "TGOB.sso.w2", "_", sp)]] + 1 / 3 * sso.temp.ratio$observers.n.n + 1 / 3 * sso.temp.ratio$species.n.n)
-        # ppp
-        sp.w[[paste0(prefix, "TGOB.sso.w2.3p", "_", sp)]] <- minMaxNormalize(sp.w[[paste0(prefix, "TGOB.sso.w2", "_", sp)]] * sso.temp.ratio[[paste0(prefix, "TGOB.sso.w.3p", "_", sp)]])
+        # sp.w <- sso.temp.ratio
+        # sp.w %<>% arrange(ratio)
+        # sp.sort <- sort(sp.w$ratio)
+        # sp.mean <- mean(sp.w$ratio)
+        # sp.median <- median(sp.w$ratio)
+        # sp.sd <- sd(sp.w$ratio)
 
 
-        #
-        # 3
-        #
+        # # dnorm2 median
+        # n <- dnorm(sp.sort, mean = sp.median, sd = sp.sd)
+        # sp.w[[paste0(prefix, "TGOB.sso.w.dnorm2.median", "_", sp)]] <- round(minMaxNormalize(n), digits = 5)
 
-        # dnorm2 mean
-        n <- dnorm(sp.sort, mean = total.ratio, sd = sp.sd)
-        sp.w[[paste0(prefix, "TGOB.sso.w.dnorm3.mean", "_", sp)]] <- round(minMaxNormalize(n), digits = 5)
+        # sp.w[[paste0(prefix, "TGOB.sso.w.3.dnorm2.median", "_", sp)]] <- minMaxNormalize(1 / 3 * sp.w[[paste0(prefix, "TGOB.sso.w.dnorm2.median", "_", sp)]] + 1 / 3 * sp.w$observers.n.n + 1 / 3 * sp.w$species.n.n)
 
-        sp.w[[paste0(prefix, "TGOB.sso.w.3.dnorm3.mean", "_", sp)]] <- minMaxNormalize(1 / 3 * sp.w[[paste0(prefix, "TGOB.sso.w.dnorm3.mean", "_", sp)]] + 1 / 3 * sp.w$observers.n.n + 1 / 3 * sp.w$species.n.n)
+        # # dnorm2 mean
+        # n <- dnorm(sp.sort, mean = sp.mean, sd = sp.sd)
+        # sp.w[[paste0(prefix, "TGOB.sso.w.dnorm2.mean", "_", sp)]] <- round(minMaxNormalize(n), digits = 5)
+
+        # sp.w[[paste0(prefix, "TGOB.sso.w.3.dnorm2.mean", "_", sp)]] <- minMaxNormalize(1 / 3 * sp.w[[paste0(prefix, "TGOB.sso.w.dnorm2.mean", "_", sp)]] + 1 / 3 * sp.w$observers.n.n + 1 / 3 * sp.w$species.n.n)
+
+        # # overal ideal ratio
+        # total.sso <- nrow(sso.temp)
+        # total.sso.sp <- nrow(sso.temp %>% filter(!!sym(species) == sp))
+
+        # total.ratio <- total.sso.sp / total.sso
+
+        # sp.w %<>% mutate(absDiffRatio = 1 - abs(total.ratio - ratio))
+
+        # sp.w %<>% mutate(tratio = absDiffRatio^2)
+        # sp.w[["tratio"]] <- minMaxNormalize(sp.w[["tratio"]])
+
+        # # w2
+        # sp.w[[paste0(prefix, "TGOB.sso.w2", "_", sp)]] <- sp.w[["tratio"]]
+        # sp.w[[paste0(prefix, "TGOB.sso.w2.3", "_", sp)]] <- minMaxNormalize(1 / 3 * sp.w[[paste0(prefix, "TGOB.sso.w2", "_", sp)]] + 1 / 3 * sso.temp.ratio$observers.n.n + 1 / 3 * sso.temp.ratio$species.n.n)
+        # # ppp
+        # sp.w[[paste0(prefix, "TGOB.sso.w2.3p", "_", sp)]] <- minMaxNormalize(sp.w[[paste0(prefix, "TGOB.sso.w2", "_", sp)]] * sso.temp.ratio[[paste0(prefix, "TGOB.sso.w.3p", "_", sp)]])
 
 
-        #
-        # w2
-        #
-        sp.w %<>% mutate(diffRatio = total.ratio - ratio)
-        sp.w[["diffRatio"]] <- minMaxNormalize(sp.w[["diffRatio"]])
+        # #
+        # # 3
+        # #
 
-        # dnorm3 mean
-        n <- dnorm(sp.w[["diffRatio"]], mean = mean(sp.w[["diffRatio"]]), sd = sd(sp.w[["diffRatio"]]))
-        sp.w[[paste0(prefix, "TGOB.sso.w2.dnorm3.mean", "_", sp)]] <- round(minMaxNormalize(n), digits = 5)
-        sp.w[[paste0(prefix, "TGOB.sso.w2.3.dnorm3.mean", "_", sp)]] <- minMaxNormalize(1 / 3 * sp.w[[paste0(prefix, "TGOB.sso.w2.dnorm3.mean", "_", sp)]] + 1 / 3 * sp.w$observers.n.n + 1 / 3 * sp.w$species.n.n)
+        # # dnorm2 mean
+        # n <- dnorm(sp.sort, mean = total.ratio, sd = sp.sd)
+        # sp.w[[paste0(prefix, "TGOB.sso.w.dnorm3.mean", "_", sp)]] <- round(minMaxNormalize(n), digits = 5)
 
-        # dnorm3 median
-        n <- dnorm(sp.w[["diffRatio"]], mean = median(sp.w[["diffRatio"]]), sd = sd(sp.w[["diffRatio"]]))
-        sp.w[[paste0(prefix, "TGOB.sso.w2.dnorm3.median", "_", sp)]] <- round(minMaxNormalize(n), digits = 5)
-        sp.w[[paste0(prefix, "TGOB.sso.w2.3.dnorm3.median", "_", sp)]] <- minMaxNormalize(1 / 3 * sp.w[[paste0(prefix, "TGOB.sso.w2.dnorm3.median", "_", sp)]] + 1 / 3 * sp.w$observers.n.n + 1 / 3 * sp.w$species.n.n)
+        # sp.w[[paste0(prefix, "TGOB.sso.w.3.dnorm3.mean", "_", sp)]] <- minMaxNormalize(1 / 3 * sp.w[[paste0(prefix, "TGOB.sso.w.dnorm3.mean", "_", sp)]] + 1 / 3 * sp.w$observers.n.n + 1 / 3 * sp.w$species.n.n)
 
 
-        p %<>% left_join(sp.w[, c(1, 7:11, 14:17, 19:22)], by = observers) # TODO get cols by name + autors to join
+        # #
+        # # w2
+        # #
+        # sp.w %<>% mutate(diffRatio = total.ratio - ratio)
+        # sp.w[["diffRatio"]] <- minMaxNormalize(sp.w[["diffRatio"]])
+
+        # # dnorm3 mean
+        # n <- dnorm(sp.w[["diffRatio"]], mean = mean(sp.w[["diffRatio"]]), sd = sd(sp.w[["diffRatio"]]))
+        # sp.w[[paste0(prefix, "TGOB.sso.w2.dnorm3.mean", "_", sp)]] <- round(minMaxNormalize(n), digits = 5)
+        # sp.w[[paste0(prefix, "TGOB.sso.w2.3.dnorm3.mean", "_", sp)]] <- minMaxNormalize(1 / 3 * sp.w[[paste0(prefix, "TGOB.sso.w2.dnorm3.mean", "_", sp)]] + 1 / 3 * sp.w$observers.n.n + 1 / 3 * sp.w$species.n.n)
+
+        # # dnorm3 median
+        # n <- dnorm(sp.w[["diffRatio"]], mean = median(sp.w[["diffRatio"]]), sd = sd(sp.w[["diffRatio"]]))
+        # sp.w[[paste0(prefix, "TGOB.sso.w2.dnorm3.median", "_", sp)]] <- round(minMaxNormalize(n), digits = 5)
+        # sp.w[[paste0(prefix, "TGOB.sso.w2.3.dnorm3.median", "_", sp)]] <- minMaxNormalize(1 / 3 * sp.w[[paste0(prefix, "TGOB.sso.w2.dnorm3.median", "_", sp)]] + 1 / 3 * sp.w$observers.n.n + 1 / 3 * sp.w$species.n.n)
 
 
-        # # # # # # # # # #
-        # TSAO
-        # # # # # # # # # #
-        if (is(r, "RasterLayer")) {
-            ss.total <- length(unique(p.t.sp[[cellNumber]]))
+        # p %<>% left_join(sp.w[, c(1, 7:11, 14:17, 19:22)], by = observers) # TODO get cols by name + autors to join
 
-            p.TSAO.stat <- p.temp.s %>%
-                ungroup() %>%
-                group_by(!!sym(species)) %>%
-                filter(!!sym(cellNumber) %in% unique(p.t.sp[[cellNumber]])) %>%
-                summarise(
-                    cells.shared = n_distinct(!!sym(cellNumber)),
-                    cells.shared.ratio = n_distinct(!!sym(cellNumber)) / ss.total
-                ) %>%
-                arrange(desc(cells.shared))
 
-            # remove focus species (100 % overlap...)
-            # p.TSAO.stat %<>% filter(!!sym(species) != sp)
+        # # # # # # # # # # #
+        # # TSAO
+        # # # # # # # # # # #
+        # if (is(r, "RasterLayer")) {
+        #     ss.total <- length(unique(p.t.sp[[cellNumber]]))
 
-            if (nrow(p.TSAO.stat) > 0) {
-                if (TSAO.n >= 1) {
-                    # exact number of TOP species
-                    p.TSAO.unique <- p.TSAO.stat %>% slice_head(n = TSAO.n)
-                } else {
-                    if (nrow(p.TSAO.stat %>% filter(cells.shared.ratio > TSAO.min)) >= 4) {
-                        # left only >50 % overlaping species with more than 3 species
-                        p.TSAO.stat.temp <- p.TSAO.stat %>% filter(cells.shared.ratio > TSAO.min)
-                        tsao.quantile <- NA
-                        tsao.quantile <- unname(stats::quantile(p.TSAO.stat.temp$cells.shared, probs = TSAO.n, na.rm = TRUE))
+        #     p.TSAO.stat <- p.temp.s %>%
+        #         ungroup() %>%
+        #         group_by(!!sym(species)) %>%
+        #         filter(!!sym(cellNumber) %in% unique(p.t.sp[[cellNumber]])) %>%
+        #         summarise(
+        #             cells.shared = n_distinct(!!sym(cellNumber)),
+        #             cells.shared.ratio = n_distinct(!!sym(cellNumber)) / ss.total
+        #         ) %>%
+        #         arrange(desc(cells.shared))
 
-                        if (nrow(p.TSAO.stat.temp %>% filter(cells.shared > tsao.quantile)) >= 4) {
-                            p.TSAO.unique <- p.TSAO.stat.temp %>% filter(cells.shared > tsao.quantile)
-                        } else {
-                            message(paste0("Less than 3 ovelaping species with >", TSAO.min, " overlap and quantile ", TSAO.n, ". Left 3 top species"))
-                            TSAO.min.species <- c(TSAO.min.species, sp)
-                            p.TSAO.unique <- p.TSAO.stat %>% slice_head(n = 4)
-                        }
-                    } else {
-                        message(paste0("Less than 3 ovelaping species with >", TSAO.min, " overlap. Left 3 top species"))
-                        TSAO.min.species <- c(TSAO.min.species, sp)
-                        p.TSAO.unique <- p.TSAO.stat %>% slice_head(n = 4)
-                    }
-                    TSAO.top[[sp]] <- p.TSAO.unique
-                }
-            } else {
-                message("No overlaping species...")
-                next
-            }
+        #     # remove focus species (100 % overlap...)
+        #     # p.TSAO.stat %<>% filter(!!sym(species) != sp)
 
-            p.TSAO.unique <- unique(as.vector(unlist(p.TSAO.unique %>% dplyr::select(!!sym(species)))))
+        #     if (nrow(p.TSAO.stat) > 0) {
+        #         if (TSAO.n >= 1) {
+        #             # exact number of TOP species
+        #             p.TSAO.unique <- p.TSAO.stat %>% slice_head(n = TSAO.n)
+        #         } else {
+        #             if (nrow(p.TSAO.stat %>% filter(cells.shared.ratio > TSAO.min)) >= 4) {
+        #                 # left only >50 % overlaping species with more than 3 species
+        #                 p.TSAO.stat.temp <- p.TSAO.stat %>% filter(cells.shared.ratio > TSAO.min)
+        #                 tsao.quantile <- NA
+        #                 tsao.quantile <- unname(stats::quantile(p.TSAO.stat.temp$cells.shared, probs = TSAO.n, na.rm = TRUE))
 
-            # mark top X  AO species
-            p %<>% mutate(!!paste0(prefix, "TS.AO", "_", sp) := ifelse(!!sym(species) %in% p.TSAO.unique, 1, 0))
+        #                 if (nrow(p.TSAO.stat.temp %>% filter(cells.shared > tsao.quantile)) >= 4) {
+        #                     p.TSAO.unique <- p.TSAO.stat.temp %>% filter(cells.shared > tsao.quantile)
+        #                 } else {
+        #                     message(paste0("Less than 3 ovelaping species with >", TSAO.min, " overlap and quantile ", TSAO.n, ". Left 3 top species"))
+        #                     TSAO.min.species <- c(TSAO.min.species, sp)
+        #                     p.TSAO.unique <- p.TSAO.stat %>% slice_head(n = 4)
+        #                 }
+        #             } else {
+        #                 message(paste0("Less than 3 ovelaping species with >", TSAO.min, " overlap. Left 3 top species"))
+        #                 TSAO.min.species <- c(TSAO.min.species, sp)
+        #                 p.TSAO.unique <- p.TSAO.stat %>% slice_head(n = 4)
+        #             }
+        #             TSAO.top[[sp]] <- p.TSAO.unique
+        #         }
+        #     } else {
+        #         message("No overlaping species...")
+        #         next
+        #     }
 
-            ### # wTSAO
-            p.TSAO.stat.w <- p.TSAO.stat %>%
-                mutate(cells.shared.ratio = cells.shared.ratio^2) %>%
-                dplyr::select(!!sym(species), cells.shared.ratio) %>%
-                rename(!!paste0(prefix, "TS.AO.w", "_", sp) := "cells.shared.ratio")
+        #     p.TSAO.unique <- unique(as.vector(unlist(p.TSAO.unique %>% dplyr::select(!!sym(species)))))
 
-            p.TSAO.stat.w[[paste0(prefix, "TS.AO.w", "_", sp)]] <- minMaxNormalize(p.TSAO.stat.w[[paste0(prefix, "TS.AO.w", "_", sp)]])
+        #     # mark top X  AO species
+        #     p %<>% mutate(!!paste0(prefix, "TS.AO", "_", sp) := ifelse(!!sym(species) %in% p.TSAO.unique, 1, 0))
 
-            p %<>% left_join(p.TSAO.stat.w, by = species)
-        }
+        #     ### # wTSAO
+        #     p.TSAO.stat.w <- p.TSAO.stat %>%
+        #         mutate(cells.shared.ratio = cells.shared.ratio^2) %>%
+        #         dplyr::select(!!sym(species), cells.shared.ratio) %>%
+        #         rename(!!paste0(prefix, "TS.AO.w", "_", sp) := "cells.shared.ratio")
 
-        # # # # # # # # # #
-        # TOAO
-        # # # # # # # # # #
-        if (is(r, "RasterLayer")) {
-            ### v názvech proměnných mám species místo observers (významově hledám nálezy pozorovbatelů, ne druhů...)
-            ss.total <- length(unique(p.t.sp[[cellNumber]]))
+        #     p.TSAO.stat.w[[paste0(prefix, "TS.AO.w", "_", sp)]] <- minMaxNormalize(p.TSAO.stat.w[[paste0(prefix, "TS.AO.w", "_", sp)]])
 
-            p.TOAO.stat <- p.temp.o %>%
-                ungroup() %>%
-                group_by(!!sym(observers)) %>%
-                filter(!!sym(cellNumber) %in% unique(p.t.sp[[cellNumber]])) %>%
-                summarise(
-                    cells.shared = n_distinct(!!sym(cellNumber)),
-                    cells.shared.ratio = n_distinct(!!sym(cellNumber)) / ss.total
-                ) %>%
-                arrange(desc(cells.shared))
+        #     p %<>% left_join(p.TSAO.stat.w, by = species)
+        # }
 
-            # remove focus observers (100 % overlap...)
-            # p.TOAO.stat %<>% filter(!!sym(observers) != sp)
+        # # # # # # # # # # #
+        # # TOAO
+        # # # # # # # # # # #
+        # if (is(r, "RasterLayer")) {
+        #     ### v názvech proměnných mám species místo observers (významově hledám nálezy pozorovbatelů, ne druhů...)
+        #     ss.total <- length(unique(p.t.sp[[cellNumber]]))
 
-            if (nrow(p.TOAO.stat) > 0) {
-                if (TSAO.n >= 1) {
-                    # exact number of TOP species
-                    p.TOAO.unique <- p.TOAO.stat %>% slice_head(n = TSAO.n)
-                } else {
-                    if (nrow(p.TOAO.stat %>% filter(cells.shared.ratio > TSAO.min)) >= 4) {
-                        # left only >50 % overlaping species with more than 3 species
-                        p.TOAO.stat.temp <- p.TOAO.stat %>% filter(cells.shared.ratio > TSAO.min)
-                        toao.quantile <- NA
-                        toao.quantile <- unname(stats::quantile(p.TOAO.stat.temp$cells.shared, probs = TSAO.n, na.rm = TRUE))
+        #     p.TOAO.stat <- p.temp.o %>%
+        #         ungroup() %>%
+        #         group_by(!!sym(observers)) %>%
+        #         filter(!!sym(cellNumber) %in% unique(p.t.sp[[cellNumber]])) %>%
+        #         summarise(
+        #             cells.shared = n_distinct(!!sym(cellNumber)),
+        #             cells.shared.ratio = n_distinct(!!sym(cellNumber)) / ss.total
+        #         ) %>%
+        #         arrange(desc(cells.shared))
 
-                        if (nrow(p.TOAO.stat.temp %>% filter(cells.shared > toao.quantile)) >= 4) {
-                            p.TOAO.unique <- p.TOAO.stat.temp %>% filter(cells.shared > toao.quantile)
-                        } else {
-                            message(paste0("Less than 3 ovelaping observers with >", TSAO.min, " overlap and quantile ", TSAO.n, ". Left 3 top observers"))
-                            TOAO.min.species <- c(TOAO.min.species, sp)
-                            p.TOAO.unique <- p.TOAO.stat %>% slice_head(n = 4)
-                        }
-                    } else {
-                        message(paste0("Less than 3 ovelaping observers with >", TSAO.min, " overlap. Left 3 top observers"))
-                        TOAO.min.species <- c(TOAO.min.species, sp)
-                        p.TOAO.unique <- p.TOAO.stat %>% slice_head(n = 4)
-                    }
-                    TOAO.top[[sp]] <- p.TOAO.unique
-                }
-            } else {
-                message("No overlaping species...")
-                next
-            }
+        #     # remove focus observers (100 % overlap...)
+        #     # p.TOAO.stat %<>% filter(!!sym(observers) != sp)
 
-            p.TOAO.unique <- unique(as.vector(unlist(p.TOAO.unique %>% dplyr::select(!!sym(observers)))))
+        #     if (nrow(p.TOAO.stat) > 0) {
+        #         if (TSAO.n >= 1) {
+        #             # exact number of TOP species
+        #             p.TOAO.unique <- p.TOAO.stat %>% slice_head(n = TSAO.n)
+        #         } else {
+        #             if (nrow(p.TOAO.stat %>% filter(cells.shared.ratio > TSAO.min)) >= 4) {
+        #                 # left only >50 % overlaping species with more than 3 species
+        #                 p.TOAO.stat.temp <- p.TOAO.stat %>% filter(cells.shared.ratio > TSAO.min)
+        #                 toao.quantile <- NA
+        #                 toao.quantile <- unname(stats::quantile(p.TOAO.stat.temp$cells.shared, probs = TSAO.n, na.rm = TRUE))
 
-            # mark top X  AO species
-            p %<>% mutate(!!paste0(prefix, "TO.AO", "_", sp) := ifelse(!!sym(observers) %in% p.TOAO.unique, 1, 0))
+        #                 if (nrow(p.TOAO.stat.temp %>% filter(cells.shared > toao.quantile)) >= 4) {
+        #                     p.TOAO.unique <- p.TOAO.stat.temp %>% filter(cells.shared > toao.quantile)
+        #                 } else {
+        #                     message(paste0("Less than 3 ovelaping observers with >", TSAO.min, " overlap and quantile ", TSAO.n, ". Left 3 top observers"))
+        #                     TOAO.min.species <- c(TOAO.min.species, sp)
+        #                     p.TOAO.unique <- p.TOAO.stat %>% slice_head(n = 4)
+        #                 }
+        #             } else {
+        #                 message(paste0("Less than 3 ovelaping observers with >", TSAO.min, " overlap. Left 3 top observers"))
+        #                 TOAO.min.species <- c(TOAO.min.species, sp)
+        #                 p.TOAO.unique <- p.TOAO.stat %>% slice_head(n = 4)
+        #             }
+        #             TOAO.top[[sp]] <- p.TOAO.unique
+        #         }
+        #     } else {
+        #         message("No overlaping species...")
+        #         next
+        #     }
 
-            ### # wTOAO
-            p.TOAO.stat.w <- p.TOAO.stat %>%
-                mutate(cells.shared.ratio = cells.shared.ratio^2) %>%
-                dplyr::select(!!sym(observers), cells.shared.ratio) %>%
-                rename(!!paste0(prefix, "TO.AO.w", "_", sp) := "cells.shared.ratio")
+        #     p.TOAO.unique <- unique(as.vector(unlist(p.TOAO.unique %>% dplyr::select(!!sym(observers)))))
 
-            p.TOAO.stat.w[[paste0(prefix, "TO.AO.w", "_", sp)]] <- minMaxNormalize(p.TOAO.stat.w[[paste0(prefix, "TO.AO.w", "_", sp)]])
+        #     # mark top X  AO species
+        #     p %<>% mutate(!!paste0(prefix, "TO.AO", "_", sp) := ifelse(!!sym(observers) %in% p.TOAO.unique, 1, 0))
 
-            p %<>% left_join(p.TOAO.stat.w, by = observers)
-        }
+        #     ### # wTOAO
+        #     p.TOAO.stat.w <- p.TOAO.stat %>%
+        #         mutate(cells.shared.ratio = cells.shared.ratio^2) %>%
+        #         dplyr::select(!!sym(observers), cells.shared.ratio) %>%
+        #         rename(!!paste0(prefix, "TO.AO.w", "_", sp) := "cells.shared.ratio")
+
+        #     p.TOAO.stat.w[[paste0(prefix, "TO.AO.w", "_", sp)]] <- minMaxNormalize(p.TOAO.stat.w[[paste0(prefix, "TO.AO.w", "_", sp)]])
+
+        #     p %<>% left_join(p.TOAO.stat.w, by = observers)
+        # }
     }
 
     return(list(
-        "p" = p,
-        "report" = list(
-            "TS" = p.TS.stat, "TS.n" = TS.n,
-            "TO" = p.TO.stat, "TO.n" = TO.n,
-            "TSAO" = TSAO.top, "TSAO.n" = TSAO.n, "TOAO" = TOAO.top,
-            "TSAO.min.species" = TSAO.min.species, "TOAO.min.species" = TOAO.min.species
-        )
+        "p" = p
+        # "report" = list(
+        #     "TS" = p.TS.stat, "TS.n" = TS.n,
+        #     "TO" = p.TO.stat, "TO.n" = TO.n,
+        #     "TSAO" = TSAO.top, "TSAO.n" = TSAO.n, "TOAO" = TOAO.top,
+        #     "TSAO.min.species" = TSAO.min.species, "TOAO.min.species" = TOAO.min.species
+        # )
     ))
 }
