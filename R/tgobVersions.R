@@ -435,7 +435,7 @@ observerSpeciesOverlap <- p %>% filter(!!sym(cellNumber) %in% cellNumber.unique)
 
         ### # wsso
         sso.temp2.ratio.w <- sso.temp2.ratio %>%
-            dplyr::select(!!sym(observers), ratio, ratioFocusSpecies) %>%
+            dplyr::select(!!sym(observers), ratio, ratioFocusSpecies, w8, w9) %>%
             rename(!!paste0(prefix, "TGOB.sso.w3", "_", sp) := "ratio") %>%
             rename(!!paste0(prefix, "TGOB.sso.w4", "_", sp) := "ratioFocusSpecies") %>%
             rename(!!paste0(prefix, "TGOB.sso.w8", "_", sp) := "w8") %>%
