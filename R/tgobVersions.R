@@ -405,12 +405,17 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
             group_by(!!sym(observers)) %>%
             summarise(species.n = sum(uid.n))
 
+
+observerSpeciesOverlap <- p %>% filter(!!sym(cellNumber) %in% cellNumber.unique) %>% group_by(!!sym(observers)) %>% mutate(oso = n_distinct(!!sym(cellNumber))) %>% slice_head(n=1 ) %>%
+            dplyr::select(!!sym(observers), oso) 
+
         # ratio (selected species occs per total occs) per observers
         # počet (per pixel) pozorování pro daného pozorovatele: species.n (focus druhu) / observers.n (celkem všech druhů) = ratio
         sso.temp2.ratio <- sso.temp2.stat.observers %>%
             left_join(sso.temp2.stat.species, by = as.character(sym(observers))) %>%
+            left_join(observerSpeciesOverlap, by = as.character(sym(observers))) %>%
             mutate(ratio = species.n / observers.n) %>%
-            mutate(ratioFocusSpecies = species.n / length(cellNumber.unique))
+            mutate(ratioFocusSpecies = species.n / length(cellNumber.unique)) %>% mutate(w8 = species.n / oso) %>% mutate(w9 = (species.n * species.n) / oso) 
 
         observersRemoveSingleOccurrence <- as.numeric(observersRemoveSingleOccurrence)
         if (observersRemoveSingleOccurrence > 0) {
@@ -432,7 +437,9 @@ tgobVersions <- function(p, r = NA, species = "species", observers = NA, TS.n = 
         sso.temp2.ratio.w <- sso.temp2.ratio %>%
             dplyr::select(!!sym(observers), ratio, ratioFocusSpecies) %>%
             rename(!!paste0(prefix, "TGOB.sso.w3", "_", sp) := "ratio") %>%
-            rename(!!paste0(prefix, "TGOB.sso.w4", "_", sp) := "ratioFocusSpecies")
+            rename(!!paste0(prefix, "TGOB.sso.w4", "_", sp) := "ratioFocusSpecies") %>%
+            rename(!!paste0(prefix, "TGOB.sso.w8", "_", sp) := "w8") %>%
+            rename(!!paste0(prefix, "TGOB.sso.w9", "_", sp) := "w9")
 
         sso.temp2.ratio.w[[paste0(prefix, "TGOB.sso.w3", "_", sp)]] <- minMaxNormalize3(sso.temp2.ratio.w[[paste0(prefix, "TGOB.sso.w3", "_", sp)]])
         sso.temp2.ratio.w[[paste0(prefix, "TGOB.sso.w4", "_", sp)]] <- minMaxNormalize2(sso.temp2.ratio.w[[paste0(prefix, "TGOB.sso.w4", "_", sp)]])
